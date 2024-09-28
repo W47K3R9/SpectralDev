@@ -1,0 +1,11 @@
+---
+BasedOnStyle: LLVM
+BreakBeforeBraces: Allman
+AlwaysBreakTemplateDeclarations: Yes
+ColumnLimit: '120'
+IndentWidth: '4'
+PointerAlignment: Left
+ReflowComments: true
+TabWidth: '4'
+
+...
