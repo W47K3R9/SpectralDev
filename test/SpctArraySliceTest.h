@@ -41,8 +41,8 @@ inline void test_array_slice()
 
     // Check validity of reference
     samples[0] = 17.0;
-    assert(*sample_view.begin() == 17);
-    assert(*(sample_view.begin() + 1) == 1.0);
+    assert(sample_view[0] == 17);
+    assert(sample_view[1] == 1.0);
 
     // Check the advance function
     for (unsigned i = slice_size; i < 2 * slice_size; ++i)
@@ -69,7 +69,9 @@ inline void test_array_slice()
     sample_view.advance();
     sample_view.advance();
     sample_view.advance();
-    assert(*sample_view.begin() == 17);
+    assert(sample_view[0] == 17);
+    assert(sample_view[16] == 17);
+    assert(sample_view[18] == 2.0);
     std::cout << "Test passed." << std::endl;
 }
 } // namespace LBTS::Spectral
