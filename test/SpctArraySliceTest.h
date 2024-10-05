@@ -65,7 +65,7 @@ inline void test_array_slice()
     assert(samples[16] == 1);
     // print_comparison(samples, sample_view);
 
-    // Check cycle through boundaries
+    // Check cycle through boundaries and wrapping of access operators
     sample_view.advance();
     sample_view.advance();
     sample_view.advance();
