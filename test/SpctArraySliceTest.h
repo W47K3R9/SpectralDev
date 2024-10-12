@@ -30,8 +30,9 @@ void print_comparison(ArrT t_array, SliT t_slice)
 inline void test_array_slice()
 {
     std::cout << "Testing array slicing..." << std::endl;
-    constexpr unsigned large_size = POTSamples<64>::value;
-    constexpr unsigned slice_size = POTSamples<16>::value;
+    // constexpr unsigned large_size = POTSamples<64>::value;
+    constexpr unsigned large_size = PowTwo_v<unsigned, 64>;
+    constexpr unsigned slice_size = PowTwo_v<unsigned, 16>;
     double samples[large_size] = {};
     for (unsigned i = 0; i < slice_size; ++i)
     {
