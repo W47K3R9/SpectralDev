@@ -146,7 +146,7 @@ struct DegTwo
 /// 2. as output buffer from which the result will be read
 /// One critical question remaining is do we create several instances of SampleBuffer (for different sizes)
 /// or should the template be erased and the whole thing be dynamic.
-template <typename T, size_t max_buffer_size = PowTwo_v<size_t, 16384>>
+template <typename T, size_t max_buffer_size = PowTwo_v<size_t, max_num_of_samples>>
     requires(is_power_of_two(max_buffer_size))
 struct CircularSampleBuffer
 {
@@ -162,10 +162,10 @@ struct CircularSampleBuffer
         {
             return;
         }
-        // valid range guaranteed by is_power_of_two.
+        // valid range guaranteed by clipping to valid range.
         if (!is_power_of_two(i_range))
         {
-            m_view_size = lower_clip_to_power_of_two(i_range);
+            m_view_size = lower_clip_to_valid_power_of_two(i_range);
         }
         else
         {
