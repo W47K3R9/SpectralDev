@@ -1,5 +1,6 @@
 #include "test/SpctArraySliceTest.h"
 #include "test/SpctBufferManagerTest.h"
+#include "test/SpctPowTwoTest.h"
 
 int main()
 {
@@ -7,10 +8,11 @@ int main()
     using namespace LBTS::Spectral;
     test_array_slice();
     test_buffer_manager();
-    auto clip_this = lower_clip_to_power_of_two(24000ull);
-    clip_this = lower_clip_to_power_of_two(24000ul);
-    clip_this = lower_clip_to_power_of_two(24u);
+    test_domain_specific_functions_and_values();
+    auto clip_this = clip_to_lower_pow_two(24000ull);
+    clip_this = clip_to_lower_pow_two(24000ul);
+    clip_this = clip_to_lower_pow_two(24u);
     unsigned long smally = 900000;
-    clip_this = lower_clip_to_valid_power_of_two(smally);
+    clip_this = clip_to_lower_bounded_pow_two(smally);
     std::cout << clip_this << std::endl;
 }

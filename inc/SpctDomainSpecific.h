@@ -21,54 +21,95 @@ namespace LBTS::Spectral
 /**
  * @section
  * 1. Definition of constants regarding the maximum processing capability of the plugins in terms of samples.
+ * These are not explicitely checked, but have been tested in the SpctPowTwoTest.h file, just to be sure to avoid
+ * misbehaviours.
+ *
  * 2. Implementation of several compile- or runtime checks if the specified limits are respected and if a number is
  * actually a power of two.
+ *
+ * 3. Implementation of structs to provide a conveniant domain specific way to declare variables that are guaranteed
+ * to be in the valid constraints. The format is loosely related to the way the STL defines it's type infos.
+ * e.g. the value of a bounded power of two (BoundedPowTwo) is accessed either directly with BoundedPowTwo::value
+ * or with the "_v" suffix BoundedPowTwo_v
+ *
+ * @note
  * The sampling rate of a project can change at runtime. It's not recommended though to use an arbitrary large amount of
- * samples (processing power is not infinite!). For now, I'll set the maximum to 500ms with 48 kHz.
+ * samples (processing power is not infinite!). For now, the maximum is set to about 341 ms at 48 kHz. That could change
+ * in the future but for now it's a good starting point.
  * Furthermore, a sufficient amount of samples is needed for an accurate transformation.
  * Frequency resolution = sampling freq (fs) / number of samples (n)
- * 16 samples leads to a miserable 3 kHz resolution with 48 kHz fs but let's see how it sounds :D
+ * 16 samples leads to a miserable 3 kHz resolution with 48 kHz fs but let's see how it sounds, maybe this leeds to
+ * interesting experimental results.
+ *
+ * Function summary:
+ * - is_bounded_degree
+ * - is_bounded_no_of_samples
+ * - is_bounded_pow_two
+ * - pow_two_value_of_degree
+ * - clip_to_lower_pow_two
+ * - clip_to_lower_bounded_pow_two
+ *
+ * Struct summary:
+ * - BoundedPowTwo (value access with BoundedPowTwo_v)
+ * - BoundedDegTwo (value access with BoundedDegTwo_v)
  */
+
+/// @brief plugin specific constants
 constexpr unsigned min_pow_two_degree = 4;
 constexpr unsigned max_pow_two_degree = 14;
 constexpr unsigned min_num_of_samples = 16;
 constexpr unsigned max_num_of_samples = 16384;
+
 /// @brief check if the degree to calculate is in an appropriate range (2^14 = 16384 -> actual max)
 template <typename T = unsigned>
     requires(std::is_unsigned_v<T>)
-constexpr bool degree_is_in_range(const T i_degree)
+constexpr bool is_bounded_degree(const T i_degree)
 {
     return i_degree <= max_pow_two_degree && i_degree >= min_pow_two_degree;
 }
-
 /// @brief compile- or runtime check if a given number of samples is in the valid range of this plugin.
 template <typename T>
     requires(std::is_unsigned_v<T>)
-constexpr bool n_of_samples_in_valid_range(T i_samples)
+constexpr bool is_bounded_no_of_samples(T i_samples)
 {
     return i_samples >= min_num_of_samples && i_samples <= max_num_of_samples;
 }
-
 /// @brief checks the range, as well as that the number is actually a power of two.
 template <typename T = unsigned>
     requires(std::is_unsigned_v<T>)
-constexpr bool is_power_of_two(const T i_number)
+constexpr bool is_bounded_pow_two(const T i_number)
 {
-    return n_of_samples_in_valid_range(i_number) && (i_number & (i_number - 1)) == 0;
+    return is_bounded_no_of_samples(i_number) && (i_number & (i_number - 1)) == 0;
+}
+/// @brief recursive funcution to determine the value of a degree of a power of two can be used at compile- or runtime.
+template <typename T>
+    requires(std::is_unsigned_v<T>)
+constexpr T pow_two_value_of_degree(T i_degree)
+{
+    if (i_degree == 0)
+    {
+        return 1;
+    }
+    if (i_degree == 1)
+    {
+        return 2;
+    }
+    return pow_two_value_of_degree(i_degree - 1) * 2;
 }
 
-/// @brief This struct is mainly used as a security check for being sure to initialize values according to a real
-/// power of two. This is a compile-time check and NOT intended to be an object.
+/// @brief This struct is mainly used as a security check to be sure to initialize values according to a real
+/// power of two that is in the valid range of the samples used by this plugin.
+/// This is a compile-time check and NOT intended to be an object.
 template <typename T, T pot>
-    requires(is_power_of_two(pot))
-struct PowTwo
+    requires(is_bounded_pow_two(pot))
+struct BoundedPowTwo
 {
-    PowTwo() = delete;
+    BoundedPowTwo() = delete;
     static constexpr T value = pot;
 };
-/// And for conveniance you can access the value directly.
+/// @brief and for conveniance you can access the value directly.
 template <typename T, T pot>
-constexpr T PowTwo_v = PowTwo<T, pot>::value;
+constexpr T BoundedPowTwo_v = BoundedPowTwo<T, pot>::value;
 
 /// @brief clamp the given number to the closest lower power of two (except for 0 where the 2^0 = 1 is returned).
 /// Example:
@@ -76,7 +117,7 @@ constexpr T PowTwo_v = PowTwo<T, pot>::value;
 /// output: 16 (0b0000 1000)
 template <typename T>
     requires(std::is_unsigned_v<T>)
-constexpr T lower_clip_to_power_of_two(T i_value)
+constexpr T clip_to_lower_pow_two(T i_value)
 {
     if (i_value == 0)
     {
@@ -95,59 +136,40 @@ constexpr T lower_clip_to_power_of_two(T i_value)
 /// @brief like above but only for valid plugin values.
 template <typename T>
     requires(std::is_unsigned_v<T>)
-constexpr T lower_clip_to_valid_power_of_two(T i_value)
+constexpr T clip_to_lower_bounded_pow_two(T i_value)
 {
     if (i_value <= min_num_of_samples)
     {
-        return PowTwo_v<T, min_num_of_samples>;
+        return BoundedPowTwo_v<T, min_num_of_samples>;
     }
     if (i_value >= max_num_of_samples)
     {
-        return PowTwo_v<T, max_num_of_samples>;
+        return BoundedPowTwo_v<T, max_num_of_samples>;
     }
-    return lower_clip_to_power_of_two(i_value);
+    return clip_to_lower_pow_two(i_value);
 }
 
-/// @brief This struct is mainly used as a security check for being sure to initialize values according to a real
-///     power of two. This is a compile- or runtime check and NOT intended to be an object.
-template <unsigned pot>
-    requires(is_power_of_two(pot))
-struct POTSamples
-{
-    POTSamples() = delete;
-    static constexpr unsigned value = pot;
-};
-
-
-/// @brief little recursive funcution to determine the value of a degree of a power of two.
-template <typename T>
-constexpr T pot_value_of_degree(T i_degree)
-{
-    if (i_degree == 1)
-    {
-        return 2;
-    }
-    return pot_value_of_degree_ct(i_degree - 1) * 2;
-}
-
-/// @brief maybe in some scenarios it's more conveniant to specify a degree and derive the power of two value
-/// from the degree.
+/// @brief like BoundedPowTwo but you specify a degree instead of a direct value. If this struct is used at compiletime
+/// no overhead for the recursive function is needed during runtime.
 template <unsigned deg, typename T = unsigned>
-    requires(degree_is_in_range(deg))
-struct DegTwo
+    requires(is_bounded_degree(deg))
+struct BoundedDegTwo
 {
-    DegTwo() = delete;
+    BoundedDegTwo() = delete;
     static constexpr unsigned degree = deg;
-    static constexpr T value = pot_value_of_degree<T>(deg);
+    static constexpr T value = pow_two_value_of_degree<T>(deg);
 };
+template <unsigned deg, typename T = unsigned>
+/// @brief access the actual number of samples that resulted from the given degree.
+constexpr T BoundedDegTwo_v = BoundedDegTwo<deg, T>::value;
 
 /// @brief This is a circular buffer from which two instances will be used. The 'CT' stands for Compile Time.
 /// 1. as input to the FFT
 /// 2. as output buffer from which the result will be read
 /// One critical question remaining is do we create several instances of SampleBuffer (for different sizes)
 /// or should the template be erased and the whole thing be dynamic.
-template <typename T, size_t max_buffer_size = PowTwo_v<size_t, max_num_of_samples>>
-    requires(is_power_of_two(max_buffer_size))
+template <typename T, size_t max_buffer_size = BoundedPowTwo_v<size_t, max_num_of_samples>>
+    requires(is_bounded_pow_two(max_buffer_size))
 struct CircularSampleBuffer
 {
     using type = T;
@@ -163,9 +185,9 @@ struct CircularSampleBuffer
             return;
         }
         // valid range guaranteed by clipping to valid range.
-        if (!is_power_of_two(i_range))
+        if (!is_bounded_pow_two(i_range))
         {
-            m_view_size = lower_clip_to_valid_power_of_two(i_range);
+            m_view_size = clip_to_lower_bounded_pow_two(i_range);
         }
         else
         {
@@ -208,15 +230,15 @@ struct CircularSampleBuffer
 
   private:
     size_t m_index{0};
-    size_t m_view_size{PowTwo_v<size_t, max_buffer_size>};
-    T m_in_array[PowTwo_v<size_t, max_buffer_size>]{0};
-    T m_out_array[PowTwo_v<size_t, max_buffer_size>]{0};
+    size_t m_view_size{BoundedPowTwo_v<size_t, max_buffer_size>};
+    T m_in_array[BoundedPowTwo_v<size_t, max_buffer_size>]{0};
+    T m_out_array[BoundedPowTwo_v<size_t, max_buffer_size>]{0};
 };
 
 /// @brief Allows a view on a C style array while providing begin() and end() T* iterators.
 /// Note that every parameter needs to be known at compile time so this class is not suited for arrays of changing size.
 template <typename T, size_t slice_size, size_t original_size = 16384>
-    requires(is_power_of_two(slice_size) && is_power_of_two(original_size) && original_size >= slice_size)
+    requires(is_bounded_pow_two(slice_size) && is_bounded_pow_two(original_size) && original_size >= slice_size)
 struct StaticSampleArrayView
 {
   public:

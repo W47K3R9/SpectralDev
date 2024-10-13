@@ -12,6 +12,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
 add_executable(${PROJECT_NAME} main.cpp
         inc/SpctBufferManager.h
-        test/SpctArraySliceTest.h)
+        test/SpctArraySliceTest.h
+        test/SpctPowTwoTest.h)
 target_link_libraries(${PROJECT_NAME} PUBLIC cmpl_flags)
 target_include_directories(${PROJECT_NAME} PUBLIC inc)
