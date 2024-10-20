@@ -6,7 +6,7 @@
  */
 
 #pragma once
-#include "SpctDomainSpecific.h"
+#include "SpctSampleArrayView.h"
 
 #include <array>
 #include <cassert>

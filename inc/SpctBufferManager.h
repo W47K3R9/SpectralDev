@@ -5,6 +5,7 @@
  */
 #pragma once
 #include "SpctDomainSpecific.h"
+#include "SpctCircularBuffer.h"
 #include <cmath>
 
 /**
