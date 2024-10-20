@@ -5,10 +5,8 @@
  * Description: Testing of the domain specific values.
  *
  */
-
 #pragma once
 #include "SpctDomainSpecific.h"
-#include "SpctPowTwoTest.h"
 #include <iostream>
 
 namespace LBTS::Spectral

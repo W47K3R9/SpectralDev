@@ -15,7 +15,7 @@ namespace LBTS::Spectral
 /**
  * @section this header contains:
  * 1. Definition of constants regarding the maximum processing capability of the plugins in terms of samples.
- * These are not explicitely checked, but have been tested in the SpctPowTwoTest.h file, just to be sure to avoid
+ * These are not explicitely checked, but have been tested in the SpctDomainSpecificTest.h file, just to be sure to avoid
  * misbehaviours.
  *
  * 2. Implementation of several compile- or runtime checks if the specified limits are respected and if a number is

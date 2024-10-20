@@ -1,6 +1,6 @@
 #include "test/SpctArraySliceTest.h"
 #include "test/SpctBufferManagerTest.h"
-#include "test/SpctPowTwoTest.h"
+#include "test/SpctDomainSpecificTest.h"
 
 int main()
 {
