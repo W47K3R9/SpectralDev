@@ -39,7 +39,7 @@ inline void test_buffer_manager()
     double more_than_double[37];
     dummy_fill(more_than_double, 37);
     assert(more_than_double[18] == 18.5);
-    test_bm.process_daw_chunk(more_than_double,37);
+    test_bm.process_daw_chunk(more_than_double, 37);
     assert(more_than_double[15] == 0);
     assert(more_than_double[16] == 0.125);
     assert(more_than_double[36] == 0.125);
@@ -59,19 +59,21 @@ inline void test_buffer_manager()
     double smaller_odd_size[7];
     dummy_fill(smaller_odd_size, 7);
     assert(smaller_odd_size[5] == 5.5);
-    test_bm.process_daw_chunk(smaller_odd_size,7);
+    test_bm.process_daw_chunk(smaller_odd_size, 7);
     assert(smaller_odd_size[5] == 0);
     assert(test_bm.ring_buffer_index() == 7);
-    test_bm.process_daw_chunk(smaller_odd_size,7);
+    test_bm.process_daw_chunk(smaller_odd_size, 7);
     assert(smaller_odd_size[5] == 0);
     assert(test_bm.ring_buffer_index() == 14);
-    test_bm.process_daw_chunk(smaller_odd_size,7);
+    test_bm.process_daw_chunk(smaller_odd_size, 7);
     assert(test_bm.ring_buffer_index() == 5);
     assert(smaller_odd_size[0] == 0);
     assert(smaller_odd_size[2] == 0.125);
-    test_bm.process_daw_chunk(smaller_odd_size,7);
+    test_bm.process_daw_chunk(smaller_odd_size, 7);
     assert(test_bm.ring_buffer_index() == 12);
-    test_bm.process_daw_chunk(smaller_odd_size,7);
+    test_bm.process_daw_chunk(smaller_odd_size, 7);
     assert(test_bm.ring_buffer_index() == 3);
     test_bm.reset_ring_buffers();
+
+    std::cout << "Test passed." << std::endl;
 }

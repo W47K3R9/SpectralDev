@@ -103,6 +103,6 @@ inline void test_domain_specific_functions_and_values()
     static_assert(BoundedDegTwo_v<6, uint16_t> == 64);
     // constexpr auto invalid_type = BoundedDegTwo<14, uint8_t>::degree;
     // constexpr auto invalid_degree = BoundedDegTwo<15, uint16_t>::value;
-    // static_assert(BoundedPowTwo_v<uint8_t, 256> == 256);
+    std::cout << "Test passed." << std::endl;
 };
 } // namespace LBTS::Spectral
