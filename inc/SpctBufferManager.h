@@ -4,8 +4,9 @@
  * them to the FourierMap.
  */
 #pragma once
-#include "SpctDomainSpecific.h"
 #include "SpctCircularBuffer.h"
+#include "SpctDomainSpecific.h"
+#include "SpctProcessingFunctions.h"
 #include <cmath>
 
 /**
@@ -13,31 +14,37 @@
  */
 namespace LBTS::Spectral
 {
-template <typename T>
+template <typename T, size_t BUFFER_SIZE = BoundedPowTwo_v<size_t, 1024>>
+    requires(is_bounded_pow_two(BUFFER_SIZE))
 class BufferManager
 {
   public:
     BufferManager() = default;
-    explicit BufferManager(size_t i_range)
-    {
-        m_ring_buffers.resize_valid_range(i_range);
-        m_buffer_size = m_ring_buffers.size();
-    }
-    void process_daw_chunk(T* t_daw_chunk, size_t t_size);
+    /// @note the runtime implementation of a changing size for the fft may be more complex than expected and will
+    /// therefore be postponed.
+    // explicit BufferManager(const size_t i_range)
+    // {
+    //     m_ring_buffers.resize_valid_range(i_range);
+    //     m_buffer_size = m_ring_buffers.size();
+    // }
+    void process_daw_chunk(T* t_daw_chunk, const size_t t_size);
+
     void reset_ring_buffers() noexcept { m_ring_buffers.reset_buffers(); }
 
     /// @note this is only needed for testing purposes, could be deletet later on.
     [[nodiscard]] size_t ring_buffer_index() const noexcept { return m_ring_buffers.current_index(); }
+
   private:
-    CircularSampleBuffer<T> m_ring_buffers{};
+    CircularSampleBuffer<T, BUFFER_SIZE> m_ring_buffers{};
     size_t m_buffer_size = m_ring_buffers.size();
 };
 
 /**
  * IMPLEMENTATION
  */
-template <typename T>
-void BufferManager<T>::process_daw_chunk(T* t_daw_chunk, const size_t t_size)
+template <typename T, size_t BUFFER_SIZE>
+    requires(is_bounded_pow_two(BUFFER_SIZE))
+void BufferManager<T, BUFFER_SIZE>::process_daw_chunk(T* t_daw_chunk, const size_t t_size)
 {
     // in case the daw buffer is greater that the internal one, more steps are needed.
     // The narrowing conversion is WANTED!
@@ -59,7 +66,8 @@ void BufferManager<T>::process_daw_chunk(T* t_daw_chunk, const size_t t_size)
         }
         if (do_transformation)
         {
-            /// @note pass the whole array to FFT.
+            /// @note pass the whole array as reference to the FFT.
+            spct_fourier_transform(m_ring_buffers.get_in_array_ref());
             T example[16]{};
             for (auto& i : example)
             {

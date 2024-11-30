@@ -15,8 +15,8 @@ namespace LBTS::Spectral
 /**
  * @section this header contains:
  * 1. Definition of constants regarding the maximum processing capability of the plugins in terms of samples.
- * These are not explicitely checked, but have been tested in the SpctDomainSpecificTest.h file, just to be sure to avoid
- * misbehaviours.
+ * These are not explicitely checked, but have been tested in the SpctDomainSpecificTest.h file, just to be sure to
+ * avoid misbehaviours.
  *
  * 2. Implementation of several compile- or runtime checks if the specified limits are respected and if a number is
  * actually a power of two.
@@ -92,7 +92,7 @@ constexpr bool is_bounded_pow_two(const T i_number) noexcept
 /// Note that the maximum value can't be greater than the maximum representable by the given type and at max 2^63 so
 /// no overflow is possible (as opposed to the regular << operator).
 template <Spct_Unsigned T>
-constexpr T pow_two_value_of_degree(T i_degree) noexcept
+constexpr T pow_two_value_of_degree(const T i_degree) noexcept
 {
     // make sure the one to shift left has the same type as i_degree.
     constexpr T correct_one = 1;
@@ -102,6 +102,19 @@ constexpr T pow_two_value_of_degree(T i_degree) noexcept
         return (correct_one << sizeof(T) * 8 - 1);
     }
     return correct_one << i_degree;
+}
+
+template <size_t power_to_calculate, typename T = uint8_t>
+    requires(is_bounded_pow_two(power_to_calculate))
+constexpr T degree_value_of_pow() noexcept
+{
+    constexpr T correct_sized_one = 1;
+    T first_occurance = 0;
+    while ((correct_sized_one << first_occurance) != power_to_calculate)
+    {
+        ++first_occurance;
+    }
+    return first_occurance;
 }
 
 /* -------------------------------------------------------------------------------------------------------------------*/
@@ -124,7 +137,7 @@ constexpr T BoundedPowTwo_v = BoundedPowTwo<T, pot>::value;
 /* -------------------------------------------------------------------------------------------------------------------*/
 /// @brief like BoundedPowTwo but you specify a degree instead of a direct value. The rule with at least 16 Bit also
 /// applies to this struct!
-template <uint8_t deg, Spct_U_GE_16 T = uint32_t>
+template <Spct_U_GE_16 T, uint8_t deg>
     requires(is_bounded_degree(deg))
 struct BoundedDegTwo
 {
@@ -134,8 +147,8 @@ struct BoundedDegTwo
 };
 
 /// @brief access the actual number of samples that resulted from the given degree.
-template <uint8_t deg, Spct_U_GE_16 T = uint32_t>
-constexpr T BoundedDegTwo_v = BoundedDegTwo<deg, T>::value;
+template <Spct_U_GE_16 T, uint8_t deg>
+constexpr T BoundedDegTwo_v = BoundedDegTwo<T, deg>::value;
 
 /* -------------------------------------------------------------------------------------------------------------------*/
 /// @brief clamp the given number to the closest lower power of two.

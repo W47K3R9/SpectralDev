@@ -8,6 +8,8 @@
 
 #pragma once
 #include "SpctDomainSpecific.h"
+#include <array>
+#include <complex>
 
 namespace LBTS::Spectral
 {
@@ -16,17 +18,18 @@ namespace LBTS::Spectral
 /// 2. as output buffer from which the result will be read
 /// One critical question remaining is do we create several instances of SampleBuffer (for different sizes)
 /// or should the template be erased and the whole thing be dynamic.
-template <typename T, size_t max_buffer_size = BoundedDegTwo_v<max_pow_two_degree, size_t>>
+template <typename T, size_t max_buffer_size = BoundedPowTwo_v<size_t, 1024>>
     requires(is_bounded_pow_two(max_buffer_size))
 struct CircularSampleBuffer
 {
     using type = T;
     CircularSampleBuffer() = default;
-    explicit CircularSampleBuffer(const size_t i_range) { resize_valid_range(i_range); }
+    // explicit CircularSampleBuffer(const size_t i_range) { resize_valid_range(i_range); }
     ~CircularSampleBuffer() = default;
 
     /// @brief resizes the internal range the buffer works with (I know const is unnecessary here but I like it for
     /// readability).
+    /// ON HOLD!
     void resize_valid_range(const size_t i_range) noexcept;
 
     /// @brief as the name says, note that only values in the active valid range get cleared!
@@ -49,15 +52,50 @@ struct CircularSampleBuffer
     /// The calling function MUST assure to provide an array that is AT LEAST THE SIZE OF THE CURRENT VIEW SIZE!
     void fill_output_unsafe(T* t_array_to_be_copied)
     {
-        std::copy(t_array_to_be_copied, t_array_to_be_copied + m_view_size, m_out_array);
+        std::copy(t_array_to_be_copied, t_array_to_be_copied + m_view_size, m_out_array.begin());
     }
+
+    /// @brief pass the filled input array by reference (to the FFT calculation)
+    std::array<std::complex<T>, max_buffer_size>& get_in_array_ref() noexcept { return m_in_array; }
+
   private:
     size_t m_index{0};
     size_t m_view_size{max_buffer_size};
-    T m_in_array[max_buffer_size]{0};
-    T m_out_array[max_buffer_size]{0};
+    std::array<std::complex<T>, max_buffer_size> m_in_array{0};
+    std::array<T, max_buffer_size> m_out_array{0};
 };
 
+template <typename T, size_t max_buffer_size>
+    requires(is_bounded_pow_two(max_buffer_size))
+void CircularSampleBuffer<T, max_buffer_size>::reset_buffers() noexcept
+{
+    m_in_array.fill(0);
+    m_out_array.fill(0);
+    m_index = 0;
+
+    // DEPRECATED! May be a liiiittle faster than the implementation above but may be never needed.
+    // for (auto& el : std::span(m_in_array.begin(), m_view_size))
+    // {
+    //     el = 0;
+    // }
+    // for (auto& el : std::span(m_out_array.begin(), m_view_size))
+    // {
+    //     el = 0;
+    // }
+}
+
+template <typename T, size_t max_buffer_size>
+    requires(is_bounded_pow_two(max_buffer_size))
+bool CircularSampleBuffer<T, max_buffer_size>::advance() noexcept
+{
+    ++m_index;
+    // transformation needs to be done when wrapping is needed.
+    const bool do_transformation = m_index == m_view_size;
+    m_index &= m_view_size - 1;
+    return do_transformation;
+}
+
+// ON HOLD!
 template <typename T, size_t max_buffer_size>
     requires(is_bounded_pow_two(max_buffer_size))
 void CircularSampleBuffer<T, max_buffer_size>::resize_valid_range(const size_t i_range) noexcept
@@ -78,33 +116,4 @@ void CircularSampleBuffer<T, max_buffer_size>::resize_valid_range(const size_t i
         m_view_size = i_range;
     }
 }
-
-template <typename T, size_t max_buffer_size>
-    requires(is_bounded_pow_two(max_buffer_size))
-void CircularSampleBuffer<T, max_buffer_size>::reset_buffers() noexcept
-{
-    /// @note not the most efficient approach but memset may be optimized away and since this get's only called
-    /// when resizing the buffer that shouldn't be a problem, also only the needed values are being reset.
-    for (auto& el : std::span(m_in_array, m_view_size))
-    {
-        el = 0;
-    }
-    for (auto& el : std::span(m_out_array, m_view_size))
-    {
-        el = 0;
-    }
-    m_index = 0;
-}
-
-template <typename T, size_t max_buffer_size>
-    requires(is_bounded_pow_two(max_buffer_size))
-bool CircularSampleBuffer<T, max_buffer_size>::advance() noexcept
-{
-    ++m_index;
-    // transformation needs to be done when wrapping is needed.
-    const bool do_transformation = m_index == m_view_size;
-    m_index &= m_view_size - 1;
-    return do_transformation;
-}
-
 } // namespace LBTS::Spectral

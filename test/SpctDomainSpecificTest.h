@@ -21,9 +21,9 @@ inline void test_domain_specific_functions_and_values()
     std::cout << "Maximum number of samples is: " << assert_max_is_valid << std::endl;
 
     // See if numbers align
-    static_assert(BoundedDegTwo_v<min_pow_two_degree> == assert_min_is_valid);
-    static_assert(BoundedDegTwo_v<max_pow_two_degree> == assert_max_is_valid);
-    static_assert(BoundedDegTwo_v<8> == 1u << 8);
+    static_assert(BoundedDegTwo_v<size_t, min_pow_two_degree> == assert_min_is_valid);
+    static_assert(BoundedDegTwo_v<size_t, max_pow_two_degree> == assert_max_is_valid);
+    static_assert(BoundedDegTwo_v<size_t, 8> == 1u << 8);
     static_assert(is_bounded_degree(1u) == false);
     static_assert(is_bounded_degree(4u) == true);
     static_assert(is_bounded_degree(17u) == false);
@@ -98,9 +98,9 @@ inline void test_domain_specific_functions_and_values()
     static_assert(clip_to_lower_pow_two<uint8_t>(2565) == static_cast<uint8_t>(4));
     static_assert(clip_to_lower_bounded_pow_two<uint16_t>(2565) == 2048);
 
-    static_assert(BoundedDegTwo_v<14, uint16_t> == 16384);
-    static_assert(BoundedDegTwo_v<7, uint16_t> == 128);
-    static_assert(BoundedDegTwo_v<6, uint16_t> == 64);
+    static_assert(BoundedDegTwo_v<uint16_t, 14> == 16384);
+    static_assert(BoundedDegTwo_v<uint16_t, 7> == 128);
+    static_assert(BoundedDegTwo_v<uint16_t, 6> == 64);
     // constexpr auto invalid_type = BoundedDegTwo<14, uint8_t>::degree;
     // constexpr auto invalid_degree = BoundedDegTwo<15, uint16_t>::value;
     std::cout << "Test passed." << std::endl;

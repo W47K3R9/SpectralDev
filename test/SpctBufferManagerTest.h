@@ -21,7 +21,7 @@ using namespace LBTS::Spectral;
 inline void test_buffer_manager()
 {
     std::cout << "Testing circular buffers..." << std::endl;
-    BufferManager<double> test_bm(16);
+    BufferManager<double, 16u> test_bm{};
     double same_size[16];
     dummy_fill(same_size, 16);
     assert(same_size[10] == 10.5);
