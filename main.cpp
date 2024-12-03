@@ -9,8 +9,4 @@ int main()
     test_array_slice();
     test_buffer_manager();
     test_domain_specific_functions_and_values();
-
-    constexpr auto num = 148129839285 & 1;
-    std::cout << num;
-
 }

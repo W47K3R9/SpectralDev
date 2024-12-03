@@ -18,8 +18,8 @@ namespace LBTS::Spectral
 /// 2. as output buffer from which the result will be read
 /// One critical question remaining is do we create several instances of SampleBuffer (for different sizes)
 /// or should the template be erased and the whole thing be dynamic.
-template <typename T, size_t max_buffer_size = BoundedPowTwo_v<size_t, 1024>>
-    requires(is_bounded_pow_two(max_buffer_size))
+template <typename T, size_t MAX_BUFFER_SIZE = BoundedPowTwo_v<size_t, 1024>>
+    requires(is_bounded_pow_two(MAX_BUFFER_SIZE))
 struct CircularSampleBuffer
 {
     using type = T;
@@ -56,18 +56,18 @@ struct CircularSampleBuffer
     }
 
     /// @brief pass the filled input array by reference (to the FFT calculation)
-    std::array<std::complex<T>, max_buffer_size>& get_in_array_ref() noexcept { return m_in_array; }
+    std::array<std::complex<T>, MAX_BUFFER_SIZE>& get_in_array_ref() noexcept { return m_in_array; }
 
   private:
     size_t m_index{0};
-    size_t m_view_size{max_buffer_size};
-    std::array<std::complex<T>, max_buffer_size> m_in_array{0};
-    std::array<T, max_buffer_size> m_out_array{0};
+    size_t m_view_size{MAX_BUFFER_SIZE};
+    std::array<std::complex<T>, MAX_BUFFER_SIZE> m_in_array{0};
+    std::array<T, MAX_BUFFER_SIZE> m_out_array{0};
 };
 
-template <typename T, size_t max_buffer_size>
-    requires(is_bounded_pow_two(max_buffer_size))
-void CircularSampleBuffer<T, max_buffer_size>::reset_buffers() noexcept
+template <typename T, size_t MAX_BUFFER_SIZE>
+    requires(is_bounded_pow_two(MAX_BUFFER_SIZE))
+void CircularSampleBuffer<T, MAX_BUFFER_SIZE>::reset_buffers() noexcept
 {
     m_in_array.fill(0);
     m_out_array.fill(0);
@@ -84,9 +84,9 @@ void CircularSampleBuffer<T, max_buffer_size>::reset_buffers() noexcept
     // }
 }
 
-template <typename T, size_t max_buffer_size>
-    requires(is_bounded_pow_two(max_buffer_size))
-bool CircularSampleBuffer<T, max_buffer_size>::advance() noexcept
+template <typename T, size_t MAX_BUFFER_SIZE>
+    requires(is_bounded_pow_two(MAX_BUFFER_SIZE))
+bool CircularSampleBuffer<T, MAX_BUFFER_SIZE>::advance() noexcept
 {
     ++m_index;
     // transformation needs to be done when wrapping is needed.
@@ -96,13 +96,13 @@ bool CircularSampleBuffer<T, max_buffer_size>::advance() noexcept
 }
 
 // ON HOLD!
-template <typename T, size_t max_buffer_size>
-    requires(is_bounded_pow_two(max_buffer_size))
-void CircularSampleBuffer<T, max_buffer_size>::resize_valid_range(const size_t i_range) noexcept
+template <typename T, size_t MAX_BUFFER_SIZE>
+    requires(is_bounded_pow_two(MAX_BUFFER_SIZE))
+void CircularSampleBuffer<T, MAX_BUFFER_SIZE>::resize_valid_range(const size_t i_range) noexcept
 {
-    // first range check needed since the max_buffer_size doesn't have to be the max number of samples the plugin
+    // first range check needed since the MAX_BUFFER_SIZE doesn't have to be the max number of samples the plugin
     // allows (which is checked by is_power_of_two).
-    if (i_range >= max_buffer_size)
+    if (i_range >= MAX_BUFFER_SIZE)
     {
         return;
     }

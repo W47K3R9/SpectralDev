@@ -21,7 +21,7 @@ using namespace LBTS::Spectral;
 inline void test_buffer_manager()
 {
     std::cout << "Testing circular buffers..." << std::endl;
-    BufferManager<double, 16u> test_bm{};
+    BufferManager<double, 16> test_bm{};
     double same_size[16];
     dummy_fill(same_size, 16);
     assert(same_size[10] == 10.5);
@@ -75,5 +75,19 @@ inline void test_buffer_manager()
     assert(test_bm.ring_buffer_index() == 3);
     test_bm.reset_ring_buffers();
 
+    constexpr auto five_twelve= BoundedPowTwo_v<size_t, 512>;
+    constexpr auto one_twenty_four= BoundedPowTwo_v<size_t, 1024>;
+    constexpr auto two_fourty_eight= BoundedPowTwo_v<size_t, 2048>;
+    BufferManager<double, BoundedPowTwo_v<size_t, five_twelve>> l_buffer;
+    double l_array[five_twelve];
+    l_buffer.process_daw_chunk(l_array, five_twelve);
+
+    BufferManager<double> xl_buffer;
+    double xl_array[one_twenty_four];
+    xl_buffer.process_daw_chunk(xl_array, one_twenty_four);
+
+    BufferManager<double, BoundedPowTwo_v<size_t, two_fourty_eight>> xxl_buffer;
+    double xxl_array[two_fourty_eight];
+    xxl_buffer.process_daw_chunk(xxl_array, two_fourty_eight);
     std::cout << "Test passed." << std::endl;
 }

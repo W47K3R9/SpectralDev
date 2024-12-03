@@ -6,6 +6,7 @@
 #pragma once
 #include "SpctCircularBuffer.h"
 #include "SpctDomainSpecific.h"
+#include "SpctExponentLUT.h"
 #include "SpctProcessingFunctions.h"
 #include <cmath>
 
@@ -27,6 +28,9 @@ class BufferManager
     //     m_ring_buffers.resize_valid_range(i_range);
     //     m_buffer_size = m_ring_buffers.size();
     // }
+
+    /// @brief main processing is done in here since JUCE works with C-style arrays this takes in T* as first address
+    /// of the array.
     void process_daw_chunk(T* t_daw_chunk, const size_t t_size);
 
     void reset_ring_buffers() noexcept { m_ring_buffers.reset_buffers(); }
@@ -37,6 +41,7 @@ class BufferManager
   private:
     CircularSampleBuffer<T, BUFFER_SIZE> m_ring_buffers{};
     size_t m_buffer_size = m_ring_buffers.size();
+    ExponentLUT<T> m_exponent_lut{};
 };
 
 /**
@@ -67,7 +72,8 @@ void BufferManager<T, BUFFER_SIZE>::process_daw_chunk(T* t_daw_chunk, const size
         if (do_transformation)
         {
             /// @note pass the whole array as reference to the FFT.
-            spct_fourier_transform(m_ring_buffers.get_in_array_ref());
+            spct_fourier_transform<T, degree_of_pow_two_value<BUFFER_SIZE>()>(m_ring_buffers.get_in_array_ref(),
+                                                                              m_exponent_lut);
             T example[16]{};
             for (auto& i : example)
             {

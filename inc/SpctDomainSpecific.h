@@ -40,6 +40,7 @@ namespace LBTS::Spectral
  * - is_bounded_no_of_samples
  * - is_bounded_pow_two
  * - pow_two_value_of_degree
+ * - degree_of_pow_two_value
  * - clip_to_lower_pow_two
  * - clip_to_lower_bounded_pow_two
  *
@@ -104,11 +105,15 @@ constexpr T pow_two_value_of_degree(const T i_degree) noexcept
     return correct_one << i_degree;
 }
 
-template <size_t power_to_calculate, typename T = uint8_t>
+/// @brief function to determine the degree of a value that is a power of two (at compile- or runtime).
+/// The degree can't be greater than 63, so uint8_t is sufficient. In order not to return valid degrees (e.g. 0)
+/// for invalid entries (like 255) by an if-check (like is_bounded_pow_two) this function takes is argument as a
+/// template parameter. That way invalid values won't even compile.
+template <uint32_t power_to_calculate, typename T = uint8_t>
     requires(is_bounded_pow_two(power_to_calculate))
-constexpr T degree_value_of_pow() noexcept
+constexpr T degree_of_pow_two_value() noexcept
 {
-    constexpr T correct_sized_one = 1;
+    constexpr uint32_t correct_sized_one = 1;
     T first_occurance = 0;
     while ((correct_sized_one << first_occurance) != power_to_calculate)
     {
