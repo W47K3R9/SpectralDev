@@ -24,7 +24,7 @@ inline void test_domain_specific_functions_and_values()
     static_assert(BoundedDegTwo_v<size_t, min_pow_two_degree> == assert_min_is_valid);
     static_assert(BoundedDegTwo_v<size_t, max_pow_two_degree> == assert_max_is_valid);
     static_assert(BoundedDegTwo_v<size_t, 8> == 1u << 8);
-    static_assert(is_bounded_degree(1u) == false);
+    static_assert(is_bounded_degree(1u) == true);
     static_assert(is_bounded_degree(4u) == true);
     static_assert(is_bounded_degree(17u) == false);
 
@@ -32,6 +32,12 @@ inline void test_domain_specific_functions_and_values()
     static_assert(pow_two_value_of_degree(0u) == 1);
     static_assert(pow_two_value_of_degree(4u) == 16u);
     static_assert(pow_two_value_of_degree(5u) == 32u);
+    static_assert(degree_of_pow_two_value(255u) == 7);
+    static_assert(degree_of_pow_two_value(256u) == 8);
+    auto check_type_degree_2 = degree_of_pow_two_value(128u);
+    static_assert(std::is_same_v<decltype(check_type_degree_2), uint8_t>);
+    auto check_type_degree_3 = degree_of_pow_two_value<uint16_t>(128u);
+    static_assert(std::is_same_v<decltype(check_type_degree_3), uint16_t>);
 
     // type checks the names may be inapropriate from system to system...
     auto check_unsigned_char = pow_two_value_of_degree<uint8_t>(5);
@@ -89,8 +95,8 @@ inline void test_domain_specific_functions_and_values()
     static_assert(pow_two_value_of_degree<uint64_t>(34) == 17179869184);
     static_assert(clip_to_lower_pow_two<uint64_t>(17179869190) == 17179869184);
     static_assert(clip_to_lower_pow_two<size_t>(17179869190) == 17179869184);
-    static_assert(clip_to_lower_bounded_pow_two<size_t>(17179869190) == 16384);
-    static_assert(clip_to_lower_bounded_pow_two<size_t>(0) == 16);
+    static_assert(clip_to_lower_bounded_pow_two<size_t>(17179869190) == 2048);
+    static_assert(clip_to_lower_bounded_pow_two<size_t>(0) == 1);
 
     // 2565 = 0b1010'0000'0101
     // clip without bunds: 4
@@ -98,7 +104,7 @@ inline void test_domain_specific_functions_and_values()
     static_assert(clip_to_lower_pow_two<uint8_t>(2565) == static_cast<uint8_t>(4));
     static_assert(clip_to_lower_bounded_pow_two<uint16_t>(2565) == 2048);
 
-    static_assert(BoundedDegTwo_v<uint16_t, 14> == 16384);
+    static_assert(BoundedDegTwo_v<uint16_t, 10> == 1024);
     static_assert(BoundedDegTwo_v<uint16_t, 7> == 128);
     static_assert(BoundedDegTwo_v<uint16_t, 6> == 64);
     // constexpr auto invalid_type = BoundedDegTwo<14, uint8_t>::degree;

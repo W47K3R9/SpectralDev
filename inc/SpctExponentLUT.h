@@ -7,11 +7,14 @@
 
 #pragma once
 
+#include "SpctDomainSpecific.h"
 #include <array>
 #include <complex>
-#include <iostream>
 
+namespace LBTS::Spectral
+{
 template <typename T, size_t elements>
+    requires(is_bounded_pow_two(elements))
 struct ExponentArray
 {
     ExponentArray()
@@ -93,3 +96,4 @@ class ExponentLUT
     ExponentArray<double, 256> m_array_2p8;
     ExponentArray<double, 512> m_array_2p9;
 };
+} // namespace LBTS::Spectral

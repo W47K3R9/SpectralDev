@@ -12,7 +12,7 @@
 namespace LBTS::Spectral{
 /// @brief Allows a view on a C style array while providing begin() and end() T* iterators.
 /// Note that every parameter needs to be known at compile time so this class is not suited for arrays of changing size.
-template <typename T, size_t slice_size, size_t original_size = 16384>
+template <typename T, size_t slice_size, size_t original_size = max_num_of_samples>
     requires(is_bounded_pow_two(slice_size) && is_bounded_pow_two(original_size) && original_size >= slice_size)
 struct StaticSampleArrayView
 {

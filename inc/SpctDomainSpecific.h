@@ -8,7 +8,6 @@
 
 #pragma once
 #include <algorithm>
-#include <span>
 
 namespace LBTS::Spectral
 {
@@ -38,6 +37,7 @@ namespace LBTS::Spectral
  * Function summary:
  * - is_bounded_degree
  * - is_bounded_no_of_samples
+ * - is_pow_two
  * - is_bounded_pow_two
  * - pow_two_value_of_degree
  * - degree_of_pow_two_value
@@ -49,114 +49,119 @@ namespace LBTS::Spectral
  * - BoundedDegTwo (value access with BoundedDegTwo_v)
  */
 
-/* -------------------------------------------------------------------------------------------------------------------*/
-/// @brief plugin specific constants
-constexpr uint32_t min_pow_two_degree = 4;
-constexpr uint32_t max_pow_two_degree = 14;
-constexpr uint32_t min_num_of_samples = 16;
-constexpr uint32_t max_num_of_samples = 16384;
+/// @brief Plugin specific constants
+constexpr uint32_t min_pow_two_degree = 0;
+constexpr uint32_t max_pow_two_degree = 11;
+constexpr uint32_t min_num_of_samples = 1;
+constexpr uint32_t max_num_of_samples = 2048;
 
-/* -------------------------------------------------------------------------------------------------------------------*/
-/// @brief this concept enforces the use of unsigned integer values with a maximum size of 8 Byte (64 Bit).
+/// @brief This concept enforces the use of unsigned integer values with a maximum size of 8 Byte (64 Bit).
+/// @tparam T: Type to constrain.
 template <typename T>
 concept Spct_Unsigned = std::is_unsigned_v<T> && sizeof(T) <= 8;
 
-/// @brief further constraint for the BoundedDegTwo and BoundedPowTwo types, so that the correct maximum can always
+/// @brief Further constraint for the BoundedDegTwo and BoundedPowTwo types, so that the correct maximum can always
 /// be assigned.
 /// Spct_U_GE_16 = Spectral Unsigned Greater or Equal to 16 Byte.
+/// @tparam T: Type to constrain.
 template <typename T>
 concept Spct_U_GE_16 = std::is_unsigned_v<T> && sizeof(T) <= 8 && sizeof(T) > 1;
 
-/* -------------------------------------------------------------------------------------------------------------------*/
-/// @brief check if the degree to calculate is in an appropriate range (2^14 = 16384 -> actual max)
+/// @brief Check if the degree to calculate is in the valid range of this plugin.
+/// @tparam T: Type of the degree to check.
+/// @param degree_to_check Degree to check.
+/// @return bool
 template <Spct_Unsigned T>
-constexpr bool is_bounded_degree(const T i_degree) noexcept
+constexpr bool is_bounded_degree(const T degree_to_check) noexcept
 {
-    return i_degree <= max_pow_two_degree && i_degree >= min_pow_two_degree;
+    return degree_to_check <= max_pow_two_degree && degree_to_check >= min_pow_two_degree;
 }
 
-/// @brief compile- or runtime check if a given number of samples is in the valid range of this plugin.
+/// @brief Compile- or runtime check if a given number of samples is in the valid range of this plugin.
+/// @tparam T: Type of the number of samples to check.
+/// @param no_of_samples: The number of samples to check.
+/// @return bool
 template <Spct_Unsigned T>
-constexpr bool is_bounded_no_of_samples(T i_samples) noexcept
+constexpr bool is_bounded_no_of_samples(T no_of_samples) noexcept
 {
-    return i_samples >= min_num_of_samples && i_samples <= max_num_of_samples;
+    return no_of_samples >= min_num_of_samples && no_of_samples <= max_num_of_samples;
 }
 
-/// @brief checks the range, as well as that the number is actually a power of two.
+/// @brief Compile- or runtime check if a given number is actually a power of two.
+/// @tparam T: Type of the number to check.
+/// @param number: The number to check.
+/// @return bool
 template <Spct_Unsigned T>
-constexpr bool is_bounded_pow_two(const T i_number) noexcept
+constexpr bool is_pow_two(const T number) noexcept
 {
-    return is_bounded_no_of_samples(i_number) && (i_number & (i_number - 1)) == 0;
+    return (number & (number - 1)) == 0;
 }
 
-/// @brief  funcution to determine the value of a degree of a power of two can be used at compile- or runtime.
-/// Note that the maximum value can't be greater than the maximum representable by the given type and at max 2^63 so
+/// @brief Checks the range, as well as that the number is actually a power of two.
+/// @tparam T: Type of the number to check.
+/// @param number: The number to check.
+/// @return bool
+template <Spct_Unsigned T>
+constexpr bool is_bounded_pow_two(const T number) noexcept
+{
+    return is_bounded_no_of_samples(number) && is_pow_two(number);
+}
+
+/// @brief  Determine the value of a degree of a power of two.
+/// The maximum value can't be greater than the maximum representable by the given type and at max 2^63 so
 /// no overflow is possible (as opposed to the regular << operator).
+/// @tparam T: Type of the degree (will also be the type of the returned value).
+/// @param degree: The degree from which you want to know the corresponding power of two.
+/// @return Value of type T
 template <Spct_Unsigned T>
-constexpr T pow_two_value_of_degree(const T i_degree) noexcept
+constexpr T pow_two_value_of_degree(const T degree) noexcept
 {
     // make sure the one to shift left has the same type as i_degree.
     constexpr T correct_one = 1;
     // safety check to prevent overflows.
-    if (i_degree >= sizeof(T) * 8)
+    if (degree >= sizeof(T) * 8)
     {
         return (correct_one << sizeof(T) * 8 - 1);
     }
-    return correct_one << i_degree;
+    return correct_one << degree;
 }
 
-/// @brief function to determine the degree of a value that is a power of two (at compile- or runtime).
-/// The degree can't be greater than 63, so uint8_t is sufficient. In order not to return valid degrees (e.g. 0)
-/// for invalid entries (like 255) by an if-check (like is_bounded_pow_two) this function takes is argument as a
-/// template parameter. That way invalid values won't even compile.
-template <uint32_t power_to_calculate, typename T = uint8_t>
-    requires(is_bounded_pow_two(power_to_calculate))
-constexpr T degree_of_pow_two_value() noexcept
-{
-    constexpr uint32_t correct_sized_one = 1;
-    T first_occurance = 0;
-    while ((correct_sized_one << first_occurance) != power_to_calculate)
-    {
-        ++first_occurance;
-    }
-    return first_occurance;
-}
-
-/* -------------------------------------------------------------------------------------------------------------------*/
 /// @brief This struct is mainly used as a security check to be sure to initialize values according to a real
 /// power of two that is in the valid range of the samples used by this plugin. To assure that the maximum is always
 /// a valid value, the type given has to have at least 16 Bit.
 /// This is a compile-time check and NOT intended to be an object.
-template <Spct_U_GE_16 T, T pot>
-    requires(is_bounded_pow_two(pot))
+/// @tparam T: Type of the passed power of two.
+/// @tparam POT: The value of the passed power of two.
+template <Spct_U_GE_16 T, T POT>
+    requires(is_bounded_pow_two(POT))
 struct BoundedPowTwo
 {
     BoundedPowTwo() = delete;
-    static constexpr T value = pot;
+    static constexpr T value = POT;
 };
 
-/// @brief and for conveniance you can access the value directly.
-template <Spct_U_GE_16 T, T pot>
-constexpr T BoundedPowTwo_v = BoundedPowTwo<T, pot>::value;
+/// @brief For conveniance you can access the value directly like in the c++ typic implementations.
+template <Spct_U_GE_16 T, T POT>
+constexpr T BoundedPowTwo_v = BoundedPowTwo<T, POT>::value;
 
-/* -------------------------------------------------------------------------------------------------------------------*/
-/// @brief like BoundedPowTwo but you specify a degree instead of a direct value. The rule with at least 16 Bit also
+/// @brief Like BoundedPowTwo but you specify a degree instead of a direct value. The rule with at least 16 Bit also
 /// applies to this struct!
-template <Spct_U_GE_16 T, uint8_t deg>
-    requires(is_bounded_degree(deg))
+/// @tparam T: Type of the passed degree.
+/// @tparam DEG: The value of the passed degree.
+template <Spct_U_GE_16 T, uint8_t DEG>
+    requires(is_bounded_degree(DEG))
 struct BoundedDegTwo
 {
     BoundedDegTwo() = delete;
-    static constexpr uint8_t degree = deg;
-    static constexpr T value = pow_two_value_of_degree<T>(deg);
+    static constexpr uint8_t degree = DEG;
+    static constexpr T value = pow_two_value_of_degree<T>(DEG);
 };
 
-/// @brief access the actual number of samples that resulted from the given degree.
+/// @brief Access the actual number of samples that resulted from the given degree.
 template <Spct_U_GE_16 T, uint8_t deg>
 constexpr T BoundedDegTwo_v = BoundedDegTwo<T, deg>::value;
 
-/* -------------------------------------------------------------------------------------------------------------------*/
-/// @brief clamp the given number to the closest lower power of two.
+/// @brief Clamp the given number to the closest lower power of two.
 /// Example:
 /// input:  19 (0b0000'1011)
 /// output: 16 (0b0000'1000)
@@ -166,6 +171,9 @@ constexpr T BoundedDegTwo_v = BoundedDegTwo<T, deg>::value;
 /// input: clip_to_lower_pow_two<uint8_t>(2565) --> 2565 = (0b1010'0000'0101)
 /// cast: 5 (0b0000'0101)
 /// output: 4 (0b0000'0100)
+/// @tparam T: Type of the passed value to clip (will also be the return type)
+/// @param i_value: Value to clip to lower bound
+/// @return The clamped power of two with type T
 template <Spct_Unsigned T>
 constexpr T clip_to_lower_pow_two(T i_value) noexcept
 {
@@ -184,8 +192,11 @@ constexpr T clip_to_lower_pow_two(T i_value) noexcept
     return correct_sized_one << sizeof(T) * 8 - 1 - first_occurance;
 }
 
-/// @brief like above but only for valid plugin values. To guarantee that the max value can be assigned, a passed type
-/// has to be at least 16 bytes large!
+/// @brief Like clip_to_lower_pow_two but only for valid plugin values. To guarantee that the max value can be assigned,
+/// a passed type has to be at least 16 bytes large!
+/// @tparam T: Type of the value to clip
+/// @param i_value: The value to clip
+/// @return Clipped value of type T
 template <Spct_U_GE_16 T>
 constexpr T clip_to_lower_bounded_pow_two(T i_value) noexcept
 {
@@ -198,6 +209,31 @@ constexpr T clip_to_lower_bounded_pow_two(T i_value) noexcept
         return BoundedPowTwo_v<T, max_num_of_samples>;
     }
     return clip_to_lower_pow_two(i_value);
+}
+
+/// @brief Get the degree of a power of two value.
+/// @tparam T: Type of the degree that returns on success, by default uint8_t since degrees larger than 64 are not
+/// possible with Spct_Unsigned.
+/// @tparam V: Type of the value to check, defaultet to uint64_t to have the max resolution available if not statet
+/// otherwise.
+/// @param power_to_calculate: The power of two from which you want to know the corresponding degree. If the value
+/// passed is not a power of two, it will be clipped to the closest lower power of two.
+/// @return The degree of type T, corresponding to the passed (and maybe rounded) number
+template <Spct_Unsigned T = uint8_t, Spct_Unsigned V = uint64_t>
+constexpr T degree_of_pow_two_value(const V power_to_calculate) noexcept
+{
+    V guaranteed_pot = power_to_calculate;
+    if (!is_pow_two(power_to_calculate))
+    {
+        guaranteed_pot = clip_to_lower_pow_two(power_to_calculate);
+    }
+    constexpr V correct_sized_one = 1;
+    T first_occurance = 0;
+    while ((correct_sized_one << first_occurance) != guaranteed_pot)
+    {
+        ++first_occurance;
+    }
+    return first_occurance;
 }
 
 } // namespace LBTS::Spectral

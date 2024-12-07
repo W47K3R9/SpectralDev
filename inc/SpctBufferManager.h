@@ -72,8 +72,8 @@ void BufferManager<T, BUFFER_SIZE>::process_daw_chunk(T* t_daw_chunk, const size
         if (do_transformation)
         {
             /// @note pass the whole array as reference to the FFT.
-            spct_fourier_transform<T, degree_of_pow_two_value<BUFFER_SIZE>()>(m_ring_buffers.get_in_array_ref(),
-                                                                              m_exponent_lut);
+            spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(m_ring_buffers.get_in_array_ref(),
+                                                                               m_exponent_lut);
             T example[16]{};
             for (auto& i : example)
             {

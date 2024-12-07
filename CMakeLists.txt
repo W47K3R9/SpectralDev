@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
 add_executable(${PROJECT_NAME} main.cpp
+        inc/SpctDomainSpecific.h
         inc/SpctProcessingFunctions.h
         inc/SpctCircularBuffer.h
         inc/SpctExponentLUT.h)
