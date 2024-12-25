@@ -75,16 +75,38 @@ inline void test_buffer_manager()
     assert(test_bm.ring_buffer_index() == 3);
     test_bm.reset_ring_buffers();
 
-    constexpr auto five_twelve= BoundedPowTwo_v<size_t, 512>;
-    constexpr auto one_twenty_four= BoundedPowTwo_v<size_t, 1024>;
-    constexpr auto two_fourty_eight= BoundedPowTwo_v<size_t, 2048>;
+    constexpr auto five_twelve = BoundedPowTwo_v<size_t, 512>;
+    constexpr auto one_twenty_four = BoundedPowTwo_v<size_t, 1024>;
+    constexpr auto two_fourty_eight = BoundedPowTwo_v<size_t, 2048>;
     BufferManager<double, BoundedPowTwo_v<size_t, five_twelve>> l_buffer;
     double l_array[five_twelve];
     l_buffer.process_daw_chunk(l_array, five_twelve);
 
     BufferManager<double> xl_buffer;
     double xl_array[one_twenty_four];
+    for (size_t i = 0; i < one_twenty_four; ++i)
+    {
+        xl_array[i] = 0.3 * std::sin(6 * 2 * M_PI * static_cast<double>(i) / one_twenty_four) +
+                      0.65 * std::sin(16 * 2 * M_PI * static_cast<double>(i) / one_twenty_four) +
+                      0.9 * std::sin(10 * 2 * M_PI * static_cast<double>(i) / one_twenty_four);
+    }
+    auto now = std::chrono::system_clock::now();
     xl_buffer.process_daw_chunk(xl_array, one_twenty_four);
+    auto end = std::chrono::system_clock::now();
+    std::cout << "Base case algorithm took " << std::chrono::duration_cast<std::chrono::microseconds>(end - now).count()
+              << " µs." << std::endl;
+
+    double rising_value = 1.01;
+    for (double& element : xl_array)
+    {
+        element = rising_value;
+        rising_value += 0.02;
+    }
+    now = std::chrono::system_clock::now();
+    xl_buffer.process_daw_chunk(xl_array, one_twenty_four);
+    end = std::chrono::system_clock::now();
+    std::cout << "Worst case algorithm took "
+              << std::chrono::duration_cast<std::chrono::microseconds>(end - now).count() << " µs." << std::endl;
 
     BufferManager<double, BoundedPowTwo_v<size_t, two_fourty_eight>> xxl_buffer;
     double xxl_array[two_fourty_eight];

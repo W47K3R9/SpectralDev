@@ -1,11 +1,17 @@
+/**
+ * Author: Lucas Scheidt
+ * Date: 03.12.24
+ *
+ * Description: All processing functions that are needed for the plugin, this means an implementation of a non-recursive
+ * FFT and also a determination of the k-highest amplitudes of the transformed signal.
+ */
+
 #pragma once
 #include "SpctDomainSpecific.h"
 #include "SpctExponentLUT.h"
 #include <array>
 #include <complex>
-
-// DEBUG
-#include <iostream>
+#include <span>
 
 namespace LBTS::Spectral
 {
@@ -15,12 +21,9 @@ namespace LBTS::Spectral
 /// be that greedy it's simply a size_t :)
 template <typename T, size_t DEG_TWO = BoundedDegTwo<size_t, 10>::degree>
     requires(is_bounded_degree(DEG_TWO))
-void spct_fourier_transform(std::array<std::complex<T>, pow_two_value_of_degree(DEG_TWO)>& samples_arr,
+void spct_fourier_transform(ComplexArr<T, pow_two_value_of_degree(DEG_TWO)>& samples_arr,
                             ExponentLUT<T>& exponent_lut) noexcept
 {
-    // DEBUG: BEGIN
-    const auto start = std::chrono::system_clock::now();
-
     constexpr auto num_samples = pow_two_value_of_degree(DEG_TWO);
     // first swap indices in bit-reversal manner
     // Algorithm:
@@ -56,28 +59,51 @@ void spct_fourier_transform(std::array<std::complex<T>, pow_two_value_of_degree(
     //      x[rk+i] = x[rk+i] + tau
     //  k = 2k;
     size_t current_pot = 2; // current power of two
-    size_t current_twiddle_factor_array_index = 0;
+    size_t current_exp_array_index = 0;
     while (current_pot <= num_samples)
     {
-        exponent_lut.choose_array(current_twiddle_factor_array_index);
+        exponent_lut.choose_array(current_exp_array_index);
         const size_t outer_limit = num_samples / current_pot;
         for (size_t outer_ndx = 0; outer_ndx < outer_limit; ++outer_ndx)
         {
             for (size_t inner_ndx = 0; inner_ndx < (current_pot >> 1); ++inner_ndx)
             {
                 using namespace std::complex_literals;
-                std::complex<double> tau =
-                   exponent_lut[inner_ndx] * samples_arr[outer_ndx * current_pot + inner_ndx + (current_pot >> 1)];
+                std::complex<T> tau =
+                    exponent_lut[inner_ndx] * samples_arr[outer_ndx * current_pot + inner_ndx + (current_pot >> 1)];
                 samples_arr[outer_ndx * current_pot + inner_ndx + (current_pot >> 1)] =
                     samples_arr[outer_ndx * current_pot + inner_ndx] - tau;
                 samples_arr[outer_ndx * current_pot + inner_ndx] += tau;
             }
         }
-        ++current_twiddle_factor_array_index;
+        ++current_exp_array_index;
         current_pot <<= 1;
     }
-    const auto end = std::chrono::system_clock::now();
-    std::cout << "The algorithm took: " << (end - start).count() << " ns" << std::endl;
+}
+
+template <typename T, size_t N_SAMPLES = BoundedPowTwo_v<size_t, 1024>>
+size_t calculate_max_map(ComplexArr<T, N_SAMPLES>& samples_arr, IndexValueArr<T, (N_SAMPLES >> 1)> bin_mag_arr,
+                         T threshold)
+{
+    // in order not to treat some arbitrary rounding errors like 1e-13 as valid magnitudes, everything beyond 1 is
+    // interpreted as 0.
+    threshold = (threshold < 1.0) ? 1.0 : threshold;
+    size_t valid_entries = 0;
+    for (size_t bin_number = 0; bin_number < N_SAMPLES >> 1; ++bin_number)
+    {
+        if (const auto& abs_val = std::abs<T>(samples_arr[bin_number]); abs_val >= threshold)
+        {
+            bin_mag_arr[valid_entries] = std::make_pair(bin_number, abs_val);
+            ++valid_entries;
+        }
+    }
+    // sort the spectrum by descending magnitude (lambda)
+    std::partial_sort(bin_mag_arr.begin(),
+                      bin_mag_arr.begin() + valid_entries,
+                      bin_mag_arr.end(),
+                      [](const std::pair<size_t, T>& pair_a, const std::pair<size_t, T>& pair_b) -> bool
+                      { return pair_a.second > pair_b.second; });
+    return valid_entries;
 }
 
 } // namespace LBTS::Spectral

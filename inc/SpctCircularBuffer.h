@@ -56,12 +56,12 @@ struct CircularSampleBuffer
     }
 
     /// @brief pass the filled input array by reference (to the FFT calculation)
-    std::array<std::complex<T>, MAX_BUFFER_SIZE>& get_in_array_ref() noexcept { return m_in_array; }
+    ComplexArr<T, MAX_BUFFER_SIZE>& get_in_array_ref() noexcept { return m_in_array; }
 
   private:
     size_t m_index{0};
     size_t m_view_size{MAX_BUFFER_SIZE};
-    std::array<std::complex<T>, MAX_BUFFER_SIZE> m_in_array{0};
+    ComplexArr<T, MAX_BUFFER_SIZE> m_in_array{0};
     std::array<T, MAX_BUFFER_SIZE> m_out_array{0};
 };
 
@@ -91,7 +91,11 @@ bool CircularSampleBuffer<T, MAX_BUFFER_SIZE>::advance() noexcept
     ++m_index;
     // transformation needs to be done when wrapping is needed.
     const bool do_transformation = m_index == m_view_size;
-    m_index &= m_view_size - 1;
+    // mask with the flipped view size
+    // m_index & ~m_view_size
+    // 01101   & ~(10000) = 01101 & 01111 = 01101
+    // 10000   & ~(10000) = 10000 & 01111 = 00000
+    m_index &= ~m_view_size;
     return do_transformation;
 }
 

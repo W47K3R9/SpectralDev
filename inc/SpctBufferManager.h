@@ -42,6 +42,7 @@ class BufferManager
     CircularSampleBuffer<T, BUFFER_SIZE> m_ring_buffers{};
     size_t m_buffer_size = m_ring_buffers.size();
     ExponentLUT<T> m_exponent_lut{};
+    IndexValueArr<T, (BUFFER_SIZE >> 1)> m_bin_mag_arr;
 };
 
 /**
@@ -71,9 +72,10 @@ void BufferManager<T, BUFFER_SIZE>::process_daw_chunk(T* t_daw_chunk, const size
         }
         if (do_transformation)
         {
-            /// @note pass the whole array as reference to the FFT.
+            // pass the whole array as reference to the FFT
             spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(m_ring_buffers.get_in_array_ref(),
-                                                                               m_exponent_lut);
+                                                                            m_exponent_lut);
+            calculate_max_map(m_ring_buffers.get_in_array_ref(), m_bin_mag_arr, 1.0);
             T example[16]{};
             for (auto& i : example)
             {

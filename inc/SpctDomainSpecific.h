@@ -8,6 +8,7 @@
 
 #pragma once
 #include <algorithm>
+#include <complex>
 
 namespace LBTS::Spectral
 {
@@ -47,6 +48,10 @@ namespace LBTS::Spectral
  * Struct summary:
  * - BoundedPowTwo (value access with BoundedPowTwo_v)
  * - BoundedDegTwo (value access with BoundedDegTwo_v)
+ *
+ * Type aliases:
+ * - IndexValueArr: array of index value pairs
+ * - ComplexArr: array containing complex numbers
  */
 
 /// @brief Plugin specific constants
@@ -125,6 +130,22 @@ constexpr T pow_two_value_of_degree(const T degree) noexcept
     }
     return correct_one << degree;
 }
+
+/// @brief Alias for an array that contains pairs of indices and values.
+/// Intended for the bin numbers (frequencies) and the respective magnitudes of a fourier transformed signal.
+/// @tparam T: Type of the magnitudes (typaclly float or double).
+/// @tparam N_SAMPLES: Number of samples that this array contains (typically half the size of the original FFT array).
+/// Has to be a power of two!
+template <typename T, size_t N_SAMPLES>
+    requires(is_bounded_pow_two(N_SAMPLES))
+using IndexValueArr = std::array<std::pair<size_t, T>, N_SAMPLES>;
+
+/// @brief Alias for an array containing complex numbers (basically just for conveniance) will contain values of FFT.
+/// @tparam T: Type of the complex numbers.
+/// @tparam N_SAMPLES: Number of samples, has to be a power of two.
+template <typename T, size_t N_SAMPLES>
+    requires(is_bounded_pow_two(N_SAMPLES))
+using ComplexArr = std::array<std::complex<T>, N_SAMPLES>;
 
 /// @brief This struct is mainly used as a security check to be sure to initialize values according to a real
 /// power of two that is in the valid range of the samples used by this plugin. To assure that the maximum is always
