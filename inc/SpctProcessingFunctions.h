@@ -19,7 +19,7 @@ namespace LBTS::Spectral
 /// @note DEG_TWO could be made uint8_t, but than pow_two_value_of_degree would have to be explicitely templated to
 /// size_t (pow_two_value_of_degree<size_t>(uint8_t DEG_TWO) and since I'm lazy and on a computer we don't need to
 /// be that greedy it's simply a size_t :)
-template <typename T, size_t DEG_TWO = BoundedDegTwo<size_t, 10>::degree>
+template <FloatingPt T, size_t DEG_TWO = BoundedDegTwo<size_t, 10>::degree>
     requires(is_bounded_degree(DEG_TWO))
 void spct_fourier_transform(ComplexArr<T, pow_two_value_of_degree(DEG_TWO)>& samples_arr,
                             ExponentLUT<T>& exponent_lut) noexcept
@@ -81,17 +81,18 @@ void spct_fourier_transform(ComplexArr<T, pow_two_value_of_degree(DEG_TWO)>& sam
     }
 }
 
-template <typename T, size_t N_SAMPLES = BoundedPowTwo_v<size_t, 1024>>
-size_t calculate_max_map(ComplexArr<T, N_SAMPLES>& samples_arr, IndexValueArr<T, (N_SAMPLES >> 1)> bin_mag_arr,
-                         T threshold)
+template <FloatingPt T, size_t N_SAMPLES = BoundedPowTwo_v<size_t, 1024>>
+    requires(is_bounded_pow_two(N_SAMPLES))
+[[nodiscard]] size_t calculate_max_map(const ComplexArr<T, N_SAMPLES>& samples_arr,
+                                       BinMagArr<T, (N_SAMPLES >> 1)>& bin_mag_arr, const T threshold)
 {
     // in order not to treat some arbitrary rounding errors like 1e-13 as valid magnitudes, everything beyond 1 is
     // interpreted as 0.
-    threshold = (threshold < 1.0) ? 1.0 : threshold;
+    const T clipped_threshold = threshold >= 1 ? threshold : 1;
     size_t valid_entries = 0;
     for (size_t bin_number = 0; bin_number < N_SAMPLES >> 1; ++bin_number)
     {
-        if (const auto& abs_val = std::abs<T>(samples_arr[bin_number]); abs_val >= threshold)
+        if (const auto& abs_val = std::abs<T>(samples_arr[bin_number]); abs_val >= clipped_threshold)
         {
             bin_mag_arr[valid_entries] = std::make_pair(bin_number, abs_val);
             ++valid_entries;
@@ -106,4 +107,22 @@ size_t calculate_max_map(ComplexArr<T, N_SAMPLES>& samples_arr, IndexValueArr<T,
     return valid_entries;
 }
 
+template <FloatingPt T, size_t N_SAMPLES>
+    requires(is_bounded_pow_two(N_SAMPLES))
+void resynthesize_output(std::array<T, N_SAMPLES>& out_array, const BinMagArr<T, (N_SAMPLES >> 1)>& bin_mag_arr,
+                         const size_t valid_entries)
+{
+    const size_t active_oscillators = (valid_entries >= max_oscillators) ? max_oscillators : valid_entries;
+    const T resoulution = 1.0 / N_SAMPLES;
+    for (size_t index = 0; index < N_SAMPLES; ++index)
+    {
+        for (size_t osc_index = 0; osc_index < active_oscillators; ++osc_index)
+        {
+            // out = (mag / N_SAMPLES / 2) * sin(2pi * bin_no * index / N_SAMPLES)
+            //     = 2 * mag / N_SAMPLES   * sin(2pi * bin_no * index * resolution)
+            out_array[index] += 2 * bin_mag_arr[osc_index].second / N_SAMPLES *
+                                std::sin(two_pi<T> * bin_mag_arr[osc_index].first * resoulution * index);
+        }
+    }
+}
 } // namespace LBTS::Spectral

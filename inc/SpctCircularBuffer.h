@@ -9,16 +9,21 @@
 #pragma once
 #include "SpctDomainSpecific.h"
 #include <array>
-#include <complex>
 
 namespace LBTS::Spectral
 {
+/// Forward declaration of BufferManager to be able to use it as friend. Not thaaat beautiful but C++ forces you to
+/// do such things, so be it.
+template <FloatingPt T, size_t BUFFER_SIZE>
+    requires(is_bounded_pow_two(BUFFER_SIZE))
+class BufferManager;
+
 /// @brief This is a circular buffer from which two instances will be used.
 /// 1. as input to the FFT
 /// 2. as output buffer from which the result will be read
 /// One critical question remaining is do we create several instances of SampleBuffer (for different sizes)
 /// or should the template be erased and the whole thing be dynamic.
-template <typename T, size_t MAX_BUFFER_SIZE = BoundedPowTwo_v<size_t, 1024>>
+template <FloatingPt T, size_t MAX_BUFFER_SIZE = BoundedPowTwo_v<size_t, 1024>>
     requires(is_bounded_pow_two(MAX_BUFFER_SIZE))
 struct CircularSampleBuffer
 {
@@ -48,15 +53,10 @@ struct CircularSampleBuffer
 
     [[nodiscard]] size_t size() const noexcept { return m_view_size; }
 
-    /// @brief used to be filled by the FFT, this is *DANGEROUS* since no range checks are done.
-    /// The calling function MUST assure to provide an array that is AT LEAST THE SIZE OF THE CURRENT VIEW SIZE!
-    void fill_output_unsafe(T* t_array_to_be_copied)
-    {
-        std::copy(t_array_to_be_copied, t_array_to_be_copied + m_view_size, m_out_array.begin());
-    }
-
-    /// @brief pass the filled input array by reference (to the FFT calculation)
-    ComplexArr<T, MAX_BUFFER_SIZE>& get_in_array_ref() noexcept { return m_in_array; }
+    /// @note thought back and forth and came to the conclusion, that I preferred having a friend that knows what to
+    /// do with the internal arrays than to allow reference getters for them (or make them public).
+    /// That way access is limited and safety is increased. Only downside is the forward declaration...
+    friend BufferManager<T, MAX_BUFFER_SIZE>;
 
   private:
     size_t m_index{0};
@@ -65,7 +65,7 @@ struct CircularSampleBuffer
     std::array<T, MAX_BUFFER_SIZE> m_out_array{0};
 };
 
-template <typename T, size_t MAX_BUFFER_SIZE>
+template <FloatingPt T, size_t MAX_BUFFER_SIZE>
     requires(is_bounded_pow_two(MAX_BUFFER_SIZE))
 void CircularSampleBuffer<T, MAX_BUFFER_SIZE>::reset_buffers() noexcept
 {
@@ -84,7 +84,7 @@ void CircularSampleBuffer<T, MAX_BUFFER_SIZE>::reset_buffers() noexcept
     // }
 }
 
-template <typename T, size_t MAX_BUFFER_SIZE>
+template <FloatingPt T, size_t MAX_BUFFER_SIZE>
     requires(is_bounded_pow_two(MAX_BUFFER_SIZE))
 bool CircularSampleBuffer<T, MAX_BUFFER_SIZE>::advance() noexcept
 {
@@ -100,7 +100,7 @@ bool CircularSampleBuffer<T, MAX_BUFFER_SIZE>::advance() noexcept
 }
 
 // ON HOLD!
-template <typename T, size_t MAX_BUFFER_SIZE>
+template <FloatingPt T, size_t MAX_BUFFER_SIZE>
     requires(is_bounded_pow_two(MAX_BUFFER_SIZE))
 void CircularSampleBuffer<T, MAX_BUFFER_SIZE>::resize_valid_range(const size_t i_range) noexcept
 {

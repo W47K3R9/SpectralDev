@@ -12,7 +12,7 @@
 
 namespace LBTS::Spectral
 {
-template <typename T, size_t elements>
+template <FloatingPt T, size_t elements>
     requires(is_bounded_pow_two(elements))
 struct ExponentArray
 {
@@ -22,7 +22,7 @@ struct ExponentArray
         for (size_t index = 0; index < elements; ++index)
         {
             T rising_multiplier = static_cast<T>(index) / elements;
-            m_array_n[index] = std::exp(-1.0i * M_PI * rising_multiplier);
+            m_array_n[index] = std::exp(-1i * std::numbers::pi_v<T> * rising_multiplier);
         }
     }
     ExponentArray(const ExponentArray&) = delete;
@@ -45,7 +45,7 @@ struct ExponentArray
     ComplexArr<T, elements> m_array_n{};
 };
 
-template <typename T>
+template <FloatingPt T>
 class ExponentLUT
 {
   public:

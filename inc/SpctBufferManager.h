@@ -15,7 +15,7 @@
  */
 namespace LBTS::Spectral
 {
-template <typename T, size_t BUFFER_SIZE = BoundedPowTwo_v<size_t, 1024>>
+template <FloatingPt T, size_t BUFFER_SIZE = BoundedPowTwo_v<size_t, 1024>>
     requires(is_bounded_pow_two(BUFFER_SIZE))
 class BufferManager
 {
@@ -31,7 +31,7 @@ class BufferManager
 
     /// @brief main processing is done in here since JUCE works with C-style arrays this takes in T* as first address
     /// of the array.
-    void process_daw_chunk(T* t_daw_chunk, const size_t t_size);
+    void process_daw_chunk(T* t_daw_chunk, const size_t t_size, const T threshold = 1.0);
 
     void reset_ring_buffers() noexcept { m_ring_buffers.reset_buffers(); }
 
@@ -42,15 +42,15 @@ class BufferManager
     CircularSampleBuffer<T, BUFFER_SIZE> m_ring_buffers{};
     size_t m_buffer_size = m_ring_buffers.size();
     ExponentLUT<T> m_exponent_lut{};
-    IndexValueArr<T, (BUFFER_SIZE >> 1)> m_bin_mag_arr;
+    BinMagArr<T, (BUFFER_SIZE >> 1)> m_bin_mag_arr;
 };
 
 /**
  * IMPLEMENTATION
  */
-template <typename T, size_t BUFFER_SIZE>
+template <FloatingPt T, size_t BUFFER_SIZE>
     requires(is_bounded_pow_two(BUFFER_SIZE))
-void BufferManager<T, BUFFER_SIZE>::process_daw_chunk(T* t_daw_chunk, const size_t t_size)
+void BufferManager<T, BUFFER_SIZE>::process_daw_chunk(T* t_daw_chunk, const size_t t_size, const T threshold)
 {
     // in case the daw buffer is greater that the internal one, more steps are needed.
     // The narrowing conversion is WANTED!
@@ -72,16 +72,13 @@ void BufferManager<T, BUFFER_SIZE>::process_daw_chunk(T* t_daw_chunk, const size
         }
         if (do_transformation)
         {
-            // pass the whole array as reference to the FFT
-            spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(m_ring_buffers.get_in_array_ref(),
-                                                                            m_exponent_lut);
-            calculate_max_map(m_ring_buffers.get_in_array_ref(), m_bin_mag_arr, 1.0);
-            T example[16]{};
-            for (auto& i : example)
-            {
-                i = 0.125;
-            }
-            m_ring_buffers.fill_output_unsafe(example);
+            // pass the whole array as reference to the FFT, will change the input array!
+            spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(m_ring_buffers.m_in_array, m_exponent_lut);
+            // calculate the dominant magnitudes, won't change the input array
+            const auto valid_entries =
+                calculate_max_map<T, BUFFER_SIZE>(m_ring_buffers.m_in_array, m_bin_mag_arr, threshold);
+            // fill the output array
+            resynthesize_output<T, BUFFER_SIZE>(m_ring_buffers.m_out_array, m_bin_mag_arr, valid_entries);
             do_transformation = false;
         }
     }
