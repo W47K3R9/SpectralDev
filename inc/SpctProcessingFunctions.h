@@ -11,7 +11,6 @@
 #include "SpctExponentLUT.h"
 #include <array>
 #include <complex>
-#include <span>
 
 namespace LBTS::Spectral
 {
@@ -68,12 +67,11 @@ void spct_fourier_transform(ComplexArr<T, pow_two_value_of_degree(DEG_TWO)>& sam
         {
             for (size_t inner_ndx = 0; inner_ndx < (current_pot >> 1); ++inner_ndx)
             {
-                using namespace std::complex_literals;
-                std::complex<T> tau =
-                    exponent_lut[inner_ndx] * samples_arr[outer_ndx * current_pot + inner_ndx + (current_pot >> 1)];
-                samples_arr[outer_ndx * current_pot + inner_ndx + (current_pot >> 1)] =
-                    samples_arr[outer_ndx * current_pot + inner_ndx] - tau;
-                samples_arr[outer_ndx * current_pot + inner_ndx] += tau;
+                const auto butterfly_ndx_1 = outer_ndx * current_pot + inner_ndx;
+                const auto butterfly_ndx_2 = butterfly_ndx_1 + (current_pot >> 1);
+                std::complex<T> tau = exponent_lut[inner_ndx] * samples_arr[butterfly_ndx_2];
+                samples_arr[butterfly_ndx_2] = samples_arr[butterfly_ndx_1] - tau;
+                samples_arr[butterfly_ndx_1] += tau;
             }
         }
         ++current_exp_array_index;
@@ -92,7 +90,7 @@ template <FloatingPt T, size_t N_SAMPLES = BoundedPowTwo_v<size_t, 1024>>
     size_t valid_entries = 0;
     for (size_t bin_number = 0; bin_number < N_SAMPLES >> 1; ++bin_number)
     {
-        if (const auto& abs_val = std::abs<T>(samples_arr[bin_number]); abs_val >= clipped_threshold)
+        if (const auto abs_val = std::abs<T>(samples_arr[bin_number]); abs_val >= clipped_threshold)
         {
             bin_mag_arr[valid_entries] = std::make_pair(bin_number, abs_val);
             ++valid_entries;
@@ -107,21 +105,30 @@ template <FloatingPt T, size_t N_SAMPLES = BoundedPowTwo_v<size_t, 1024>>
     return valid_entries;
 }
 
+
 template <FloatingPt T, size_t N_SAMPLES>
     requires(is_bounded_pow_two(N_SAMPLES))
 void resynthesize_output(std::array<T, N_SAMPLES>& out_array, const BinMagArr<T, (N_SAMPLES >> 1)>& bin_mag_arr,
                          const size_t valid_entries)
 {
+    // --- only for testing
+    std::array<double, 2048> wavetable{};
+    // ---
+
     const size_t active_oscillators = (valid_entries >= max_oscillators) ? max_oscillators : valid_entries;
     const T resoulution = 1.0 / N_SAMPLES;
     for (size_t index = 0; index < N_SAMPLES; ++index)
     {
+        /// @todo implement a wavetable oscillators so that no calculation has to be done.
         for (size_t osc_index = 0; osc_index < active_oscillators; ++osc_index)
         {
             // out = (mag / N_SAMPLES / 2) * sin(2pi * bin_no * index / N_SAMPLES)
             //     = 2 * mag / N_SAMPLES   * sin(2pi * bin_no * index * resolution)
-            out_array[index] += 2 * bin_mag_arr[osc_index].second / N_SAMPLES *
-                                std::sin(two_pi<T> * bin_mag_arr[osc_index].first * resoulution * index);
+            // Taking a value from an array is A LOT faster than calculating the actual sine (~140 µs more for sine
+            // calculation on a mac mini M3 with 12 cores).
+            out_array[index] += 2 * bin_mag_arr[osc_index].second / N_SAMPLES * wavetable[index];
+            // out_array[index] += 2 * bin_mag_arr[osc_index].second / N_SAMPLES *
+            // std::sin(two_pi<T> * bin_mag_arr[osc_index].first * resoulution * index);
         }
     }
 }

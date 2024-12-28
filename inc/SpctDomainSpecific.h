@@ -65,6 +65,11 @@ namespace LBTS::Spectral
 template <typename T>
 concept FloatingPt = std::is_floating_point_v<T>;
 
+enum class OscType
+{
+    SINE, TRIANGLE, SQUARE, SAW_DOWN, SAW_UP
+};
+
 /// @brief Plugin specific constants
 constexpr uint32_t min_pow_two_degree = 0;
 constexpr uint32_t max_pow_two_degree = 11;

@@ -95,14 +95,14 @@ inline void test_buffer_manager()
         txt_file_with_raw_sine << xl_array[i] << std::endl;
     }
     auto now = std::chrono::system_clock::now();
-    xl_buffer.process_daw_chunk(xl_array, one_twenty_four, 400);
+    xl_buffer.process_daw_chunk(xl_array, one_twenty_four, 1);
 
     auto end = std::chrono::system_clock::now();
     std::cout << "Base case algorithm took " << std::chrono::duration_cast<std::chrono::microseconds>(end - now).count()
               << " µs." << std::endl;
 
     // advance one iteration to get the first calculated output
-    xl_buffer.process_daw_chunk(xl_array, one_twenty_four, 400);
+    xl_buffer.process_daw_chunk(xl_array, one_twenty_four, 1);
     std::ofstream txt_file_resynthesized{"resynthesized_values.txt"};
     for (double i : xl_array)
     {
@@ -120,6 +120,17 @@ inline void test_buffer_manager()
     end = std::chrono::system_clock::now();
     std::cout << "Worst case algorithm took "
               << std::chrono::duration_cast<std::chrono::microseconds>(end - now).count() << " µs." << std::endl;
+
+    // continous
+    constexpr auto cycles = 1000u;
+    now = std::chrono::system_clock::now();
+    for (auto i = 0u; i < cycles; ++i)
+    {
+        xl_buffer.process_daw_chunk(xl_array, one_twenty_four);
+    }
+    end = std::chrono::system_clock::now();
+    std::cout << "Average of " << cycles << " cycles is "
+              << std::chrono::duration_cast<std::chrono::microseconds>(end - now).count() / cycles << " µs." << std::endl;
 
     BufferManager<double, BoundedPowTwo_v<size_t, two_fourty_eight>> xxl_buffer;
     double xxl_array[two_fourty_eight];
