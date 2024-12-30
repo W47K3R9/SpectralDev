@@ -12,16 +12,17 @@
 
 namespace LBTS::Spectral
 {
-template <FloatingPt T, size_t elements>
-    requires(is_bounded_pow_two(elements))
+template <FloatingPt T, size_t ELEMENTS>
+    requires(is_bounded_pow_two(ELEMENTS))
 struct ExponentArray
 {
     ExponentArray()
     {
         using namespace std::complex_literals;
-        for (size_t index = 0; index < elements; ++index)
+        const T resolution = static_cast<T>(1) / ELEMENTS;
+        for (size_t index = 0; index < ELEMENTS; ++index)
         {
-            T rising_multiplier = static_cast<T>(index) / elements;
+            T rising_multiplier =index * resolution;
             m_array_n[index] = std::exp(-1i * std::numbers::pi_v<T> * rising_multiplier);
         }
     }
@@ -34,7 +35,7 @@ struct ExponentArray
     [[nodiscard]] std::complex<T> operator[](const size_t ndx) const { return m_array_n[ndx]; }
     [[nodiscard]] std::complex<T> at(const size_t index) const
     {
-        if (index >= elements)
+        if (index >= ELEMENTS)
         {
             throw std::out_of_range("Tried to access an omega value that is out of range of the current array!");
         }
@@ -42,7 +43,7 @@ struct ExponentArray
     }
 
   private:
-    ComplexArr<T, elements> m_array_n{};
+    ComplexArr<T, ELEMENTS> m_array_n{};
 };
 
 template <FloatingPt T>

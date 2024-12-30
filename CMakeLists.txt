@@ -14,6 +14,8 @@ add_executable(${PROJECT_NAME} main.cpp
         inc/SpctCircularBuffer.h
         inc/SpctExponentLUT.h
         inc/SpctOscillators.h
-        inc/SpctWavetables.h)
+        inc/SpctWavetables.h
+        test/SpctWTTest.h
+        test/SpctBufferManagerTest.h)
 target_link_libraries(${PROJECT_NAME} PUBLIC cmpl_flags)
 target_include_directories(${PROJECT_NAME} PUBLIC inc)

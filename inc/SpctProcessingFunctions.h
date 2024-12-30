@@ -126,9 +126,9 @@ void resynthesize_output(std::array<T, N_SAMPLES>& out_array, const BinMagArr<T,
             //     = 2 * mag / N_SAMPLES   * sin(2pi * bin_no * index * resolution)
             // Taking a value from an array is A LOT faster than calculating the actual sine (~140 µs more for sine
             // calculation on a mac mini M3 with 12 cores).
-            out_array[index] += 2 * bin_mag_arr[osc_index].second / N_SAMPLES * wavetable[index];
-            // out_array[index] += 2 * bin_mag_arr[osc_index].second / N_SAMPLES *
-            // std::sin(two_pi<T> * bin_mag_arr[osc_index].first * resoulution * index);
+            // out_array[index] += 2 * bin_mag_arr[osc_index].second / N_SAMPLES * wavetable[index];
+            out_array[index] += 2 * bin_mag_arr[osc_index].second / N_SAMPLES *
+            std::sin(two_pi<T> * bin_mag_arr[osc_index].first * resoulution * index);
         }
     }
 }
