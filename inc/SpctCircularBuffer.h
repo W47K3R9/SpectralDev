@@ -44,7 +44,7 @@ struct CircularSampleBuffer
     void fill_input(const T t_value) noexcept { m_in_array[m_index] = t_value; }
 
     /// @brief get one value from the current index position.
-    T receive_output() const noexcept { return m_out_array[m_index]; }
+    // T receive_output() const noexcept { return m_out_array[m_index]; }
 
     /// @brief advancing by one, this happens synchronousely for both buffers.
     bool advance() noexcept;
@@ -62,7 +62,7 @@ struct CircularSampleBuffer
     size_t m_index{0};
     size_t m_view_size{MAX_BUFFER_SIZE};
     ComplexArr<T, MAX_BUFFER_SIZE> m_in_array{0};
-    std::array<T, MAX_BUFFER_SIZE> m_out_array{0};
+    // std::array<T, MAX_BUFFER_SIZE> m_out_array{0};
 };
 
 template <FloatingPt T, size_t MAX_BUFFER_SIZE>
@@ -70,7 +70,7 @@ template <FloatingPt T, size_t MAX_BUFFER_SIZE>
 void CircularSampleBuffer<T, MAX_BUFFER_SIZE>::reset_buffers() noexcept
 {
     m_in_array.fill(0);
-    m_out_array.fill(0);
+    // m_out_array.fill(0);
     m_index = 0;
 
     // DEPRECATED! May be a liiiittle faster than the implementation above but may be never needed.

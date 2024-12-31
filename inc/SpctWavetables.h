@@ -60,7 +60,18 @@ struct SquareWT : public WaveTable<T, WT_SIZE>
 {
     SquareWT()
         : WaveTable<T, WT_SIZE>([](T value)
-                                { return (value < std::numbers::pi_v<T>) ? static_cast<T>(0) : static_cast<T>(1); })
+                                { return (value < std::numbers::pi_v<T>) ? static_cast<T>(-1) : static_cast<T>(1); })
+    {
+    }
+};
+
+template <FloatingPt T, size_t WT_SIZE>
+    requires(is_bounded_pow_two(WT_SIZE))
+struct SawWT : public WaveTable<T, WT_SIZE>
+{
+    SawWT()
+        : WaveTable<T, WT_SIZE>([](T value)
+                                { return -2 * std::numbers::inv_pi_v<T> * value + 1; })
     {
     }
 };

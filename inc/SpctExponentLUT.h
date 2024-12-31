@@ -2,9 +2,8 @@
  * Author: Lucas Scheidt
  * Date: 03.12.24
  *
- * Description:
+ * Description: Lookup Table for complex exp numbers in the unit circle. This is needed for the FFT.
  */
-
 #pragma once
 
 #include "SpctDomainSpecific.h"
@@ -12,6 +11,7 @@
 
 namespace LBTS::Spectral
 {
+
 template <FloatingPt T, size_t ELEMENTS>
     requires(is_bounded_pow_two(ELEMENTS))
 struct ExponentArray
@@ -58,7 +58,7 @@ class ExponentLUT
     ~ExponentLUT() = default;
     /// @note just a bit of safety, overhead probably tolerable due to sparse call of function.
     void choose_array(const size_t array_index) noexcept { m_act_array_index = std::clamp<size_t>(array_index, 0, 9); }
-    std::complex<T> operator[](const size_t index) const
+    std::complex<T> operator[](const size_t index) const noexcept
     {
         switch (m_act_array_index)
         {

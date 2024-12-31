@@ -1,12 +1,32 @@
 ---
 BasedOnStyle: LLVM
-BreakBeforeBraces: Allman
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterCaseLabel: true
+  AfterExternBlock: true
+  AfterObjCDeclaration: true
+  AfterUnion: true
+  AfterClass: true
+  BeforeElse: true
+  BeforeLambdaBody: true
+  BeforeWhile: true
+  BeforeCatch: true
+  SplitEmptyRecord: false
+  SplitEmptyFunction: false
+  SplitEmptyNamespace: false
 AlwaysBreakTemplateDeclarations: Yes
 AlignAfterOpenBracket: Align
 AllowAllArgumentsOnNextLine: true
+AllowShortFunctionsOnASingleLine: Inline
 BinPackArguments: false
 ColumnLimit: '120'
 IndentWidth: '4'
+PackConstructorInitializers: CurrentLine
 PointerAlignment: Left
 ReflowComments: true
 TabWidth: '4'

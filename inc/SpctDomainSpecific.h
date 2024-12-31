@@ -65,9 +65,12 @@ namespace LBTS::Spectral
 template <typename T>
 concept FloatingPt = std::is_floating_point_v<T>;
 
-enum class OscType
+enum class OscWaveform
 {
-    SINE, TRIANGLE, SQUARE, SAW_DOWN, SAW_UP
+    SINE,
+    TRIANGLE,
+    SAW,
+    SQUARE
 };
 
 /// @brief Plugin specific constants
