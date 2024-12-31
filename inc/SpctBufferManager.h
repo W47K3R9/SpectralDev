@@ -38,18 +38,18 @@ class BufferManager
     void reset(const double sampling_freq) noexcept
     {
         m_sampling_freq = sampling_freq;
-        m_ring_buffers.reset_buffers();
+        m_ring_buffer.reset_buffers();
         m_oscillators.reset(sampling_freq);
     }
 
     void select_osc_waveform(const OscWaveform& osc_waveform) noexcept { m_oscillators.select_waveform(osc_waveform); }
 
     /// @note this is only needed for testing purposes, could be deletet later on.
-    [[nodiscard]] size_t ring_buffer_index() const noexcept { return m_ring_buffers.current_index(); }
+    [[nodiscard]] size_t ring_buffer_index() const noexcept { return m_ring_buffer.current_index(); }
 
   private:
-    CircularSampleBuffer<T, BUFFER_SIZE> m_ring_buffers{};
-    size_t m_buffer_size = m_ring_buffers.size();
+    CircularSampleBuffer<T, BUFFER_SIZE> m_ring_buffer{};
+    size_t m_buffer_size = m_ring_buffer.size();
     ExponentLUT<T> m_exponent_lut{};
     BinMagArr<T, (BUFFER_SIZE >> 1)> m_bin_mag_arr;
     size_t m_valid_entries = 0;
@@ -78,17 +78,17 @@ void BufferManager<T, BUFFER_SIZE>::process_daw_chunk(T* daw_chunk, const size_t
         // in case that chunk > internal size this while loop takes care of the complete filling porcess correctly
         while (!do_transformation && daw_chunk_write_index < t_size)
         {
-            m_ring_buffers.fill_input(daw_chunk[daw_chunk_write_index]);
+            m_ring_buffer.fill_input(daw_chunk[daw_chunk_write_index]);
             daw_chunk[daw_chunk_write_index] = m_oscillators.receive_output(m_bin_mag_arr, m_valid_entries);
-            do_transformation = m_ring_buffers.advance();
+            do_transformation = m_ring_buffer.advance();
             ++daw_chunk_write_index;
         }
         if (do_transformation)
         {
             // pass the whole array as reference to the FFT, will change the input array!
-            spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(m_ring_buffers.m_in_array, m_exponent_lut);
+            spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(m_ring_buffer.m_in_array, m_exponent_lut);
             // calculate the dominant magnitudes, won't change the input array
-            m_valid_entries = calculate_max_map<T, BUFFER_SIZE>(m_ring_buffers.m_in_array, m_bin_mag_arr, threshold);
+            m_valid_entries = calculate_max_map<T, BUFFER_SIZE>(m_ring_buffer.m_in_array, m_bin_mag_arr, threshold);
             if (m_valid_entries > max_oscillators)
             {
                 m_valid_entries = max_oscillators;
@@ -102,9 +102,9 @@ void BufferManager<T, BUFFER_SIZE>::process_daw_chunk(T* daw_chunk, const size_t
     {
         while (daw_chunk_write_index < t_size)
         {
-            m_ring_buffers.fill_input(daw_chunk[daw_chunk_write_index]);
+            m_ring_buffer.fill_input(daw_chunk[daw_chunk_write_index]);
             daw_chunk[daw_chunk_write_index] = m_oscillators.receive_output(m_bin_mag_arr, m_valid_entries);
-            m_ring_buffers.advance();
+            m_ring_buffer.advance();
             ++daw_chunk_write_index;
         }
     }
