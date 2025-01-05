@@ -6,7 +6,7 @@ target_compile_features(cmpl_flags INTERFACE cxx_std_20)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -Ofast")
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
 add_executable(${PROJECT_NAME} main.cpp

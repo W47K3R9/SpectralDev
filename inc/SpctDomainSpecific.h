@@ -60,11 +60,12 @@ namespace LBTS::Spectral
  * - ComplexArr: array containing complex numbers
  */
 
-/// @brief This concept enforces the use of floating point types (float, double, long double)
+/// @brief This concept enforces the use of floating point types (float, double, long double).
 /// @tparam T: Type to constrain.
 template <typename T>
 concept FloatingPt = std::is_floating_point_v<T>;
 
+/// @brief Used to select the waveform for resynthesizing.
 enum class OscWaveform
 {
     SINE,
@@ -78,7 +79,7 @@ constexpr uint32_t min_pow_two_degree = 0;
 constexpr uint32_t max_pow_two_degree = 11;
 constexpr uint32_t min_num_of_samples = 1;
 constexpr uint32_t max_num_of_samples = 2048;
-constexpr uint32_t max_oscillators = 10;
+constexpr uint32_t max_oscillators = 28;
 template <FloatingPt T>
 constexpr T two_pi = std::numbers::pi_v<T> * 2;
 

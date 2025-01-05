@@ -16,20 +16,38 @@
 namespace LBTS::Spectral
 {
 
+enum class FunctionType
+{
+    PERIODIC,
+    WINDOWING
+};
+
 template <FloatingPt T, size_t WT_SIZE>
     requires(is_bounded_pow_two(WT_SIZE))
 struct WaveTable
 {
     // default wavetable
     WaveTable() { m_wavetable.fill(0); }
-    // fill output with one cycle of the periodic function
-    explicit WaveTable(std::function<T(T)> periodic_fn)
+    // fill output according to a periodic or windowing function
+    explicit WaveTable(const std::function<T(const T)> fn, const FunctionType& fn_type = FunctionType::PERIODIC)
     {
-        const T resolution = static_cast<T>(1) / WT_SIZE;
-        // for (auto& element : m_wavetable)
-        for (size_t index = 0; index < WT_SIZE; ++index)
+        const T periodic_scalar = two_pi<T> * static_cast<T>(1) / WT_SIZE;
+        switch (fn_type)
         {
-            m_wavetable[index] = periodic_fn(two_pi<T> * index * resolution);
+        case FunctionType::PERIODIC:
+            for (size_t index = 0; index < WT_SIZE; ++index)
+            {
+                m_wavetable[index] = fn(index * periodic_scalar);
+            }
+            break;
+        case FunctionType::WINDOWING:
+            for (size_t index = 0; index < WT_SIZE; ++index)
+            {
+                m_wavetable[index] = fn(static_cast<T>(index));
+            }
+            break;
+        default:
+            m_wavetable.fill(0);
         }
     }
     ~WaveTable() = default;
@@ -51,7 +69,7 @@ template <FloatingPt T, size_t WT_SIZE>
     requires(is_bounded_pow_two(WT_SIZE))
 struct SineWT : public WaveTable<T, WT_SIZE>
 {
-    SineWT() : WaveTable<T, WT_SIZE>([](T value) -> T { return std::sin<T>(value); }) {}
+    SineWT() : WaveTable<T, WT_SIZE>([](const T value) -> T { return std::sin<T>(value); }) {}
 };
 
 template <FloatingPt T, size_t WT_SIZE>
@@ -59,21 +77,16 @@ template <FloatingPt T, size_t WT_SIZE>
 struct SquareWT : public WaveTable<T, WT_SIZE>
 {
     SquareWT()
-        : WaveTable<T, WT_SIZE>([](T value)
+        : WaveTable<T, WT_SIZE>([](const T value) -> T
                                 { return (value < std::numbers::pi_v<T>) ? static_cast<T>(-1) : static_cast<T>(1); })
-    {
-    }
+    {}
 };
 
 template <FloatingPt T, size_t WT_SIZE>
     requires(is_bounded_pow_two(WT_SIZE))
 struct SawWT : public WaveTable<T, WT_SIZE>
 {
-    SawWT()
-        : WaveTable<T, WT_SIZE>([](T value)
-                                { return -2 * std::numbers::inv_pi_v<T> * value + 1; })
-    {
-    }
+    SawWT() : WaveTable<T, WT_SIZE>([](const T value) -> T { return -2 * std::numbers::inv_pi_v<T> * value + 1; }) {}
 };
 
 template <FloatingPt T, size_t WT_SIZE>
@@ -82,7 +95,7 @@ struct TriWT : public WaveTable<T, WT_SIZE>
 {
     TriWT()
         : WaveTable<T, WT_SIZE>(
-              [](T value)
+              [](const T value) -> T
               {
                   const T half_pi = std::numbers::pi_v<T> / 2;
                   const T two_inv_pi = std::numbers::inv_pi_v<T> * 2;
@@ -101,8 +114,29 @@ struct TriWT : public WaveTable<T, WT_SIZE>
                   }
                   return static_cast<T>(0);
               })
-    {
-    }
+    {}
+};
+
+template <FloatingPt T, size_t WT_SIZE>
+    requires(is_bounded_pow_two(WT_SIZE))
+struct HammingWindow : public WaveTable<T, WT_SIZE>
+{
+    HammingWindow()
+        : WaveTable<T, WT_SIZE>([](const T value) -> T
+                                { return 0.54  - 0.46 * std::cos<T>(two_pi<T> * value / (WT_SIZE - 1)); },
+                                FunctionType::WINDOWING)
+    {}
+};
+
+template <FloatingPt T, size_t WT_SIZE>
+    requires(is_bounded_pow_two(WT_SIZE))
+struct VonHannWindow : public WaveTable<T, WT_SIZE>
+{
+    VonHannWindow()
+        : WaveTable<T, WT_SIZE>([](const T value) -> T
+                                { return 0.5 * (1 - std::cos<T>(two_pi<T> * value / (WT_SIZE - 1))); },
+                                FunctionType::WINDOWING)
+    {}
 };
 
 } // namespace LBTS::Spectral

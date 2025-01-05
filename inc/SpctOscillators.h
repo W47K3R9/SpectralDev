@@ -68,6 +68,11 @@ class WTOscillator
     // float is precise enough for interpolation between indices
     float m_table_index = 0.0f;
     float m_index_increment = 0.0f;
+
+    float m_index_increment_old = 0.0f;
+    float m_glide_increment = 0.0f;
+    float m_glide_fraction = 0.0001f;
+
     double m_sampling_freq = 44100.0;
     double m_nyquist_freq = m_sampling_freq / 2.0;
     double m_inv_sampling_freq = 1.0 / m_sampling_freq;
@@ -165,8 +170,11 @@ T WTOscillator<T, WT_SIZE>::receive_output() noexcept
     // 4. get the fraction offset and interpolate the output value
     const float fraction = m_table_index - current_index;
     const T output = value_a + fraction * (value_b - value_a);
+    // 5. apply glide
+     m_index_increment_old = m_index_increment_old + m_glide_fraction * (m_index_increment - m_index_increment_old);
+     m_glide_fraction = ((m_glide_fraction += m_glide_increment) < 1.0f) ? m_glide_fraction : 1.0f;
     // 5. wrap if needed
-    if ((m_table_index += m_index_increment) >= WT_SIZE)
+    if ((m_table_index += m_index_increment_old) >= WT_SIZE)
     {
         m_table_index -= WT_SIZE;
     }
@@ -188,6 +196,7 @@ template <FloatingPt T, size_t WT_SIZE>
     requires(is_bounded_pow_two(WT_SIZE))
 void WTOscillator<T, WT_SIZE>::tune(T to_freq) noexcept
 {
+    m_index_increment_old = m_index_increment;
     // be sure not to tune above nyquist!
     if (to_freq > m_nyquist_freq)
     {
@@ -213,7 +222,7 @@ ResynthOscs<T, WT_SIZE, FFT_SIZE>::ResynthOscs(const double sampling_freq)
 template <FloatingPt T, size_t WT_SIZE, size_t FFT_SIZE>
     requires(is_bounded_pow_two(WT_SIZE))
 T ResynthOscs<T, WT_SIZE, FFT_SIZE>::receive_output(const BinMagArr<T, (FFT_SIZE >> 1)>& bin_mag_arr,
-                                                  const size_t valid_entries) noexcept
+                                                    const size_t valid_entries) noexcept
 {
     // valid entries is guaranteed to be smaller then max_oscillators!
     T summed_output = 0;

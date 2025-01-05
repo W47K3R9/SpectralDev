@@ -8,7 +8,7 @@
 
 #pragma once
 #include "SpctDomainSpecific.h"
-#include <array>
+#include "SpctWavetables.h"
 
 namespace LBTS::Spectral
 {
@@ -41,10 +41,9 @@ struct CircularSampleBuffer
     void reset_buffers() noexcept;
 
     /// @brief shove one value in the current index position.
-    void fill_input(const T t_value) noexcept { m_in_array[m_index] = t_value; }
+    void fill_input(const T t_value) noexcept { m_in_array[m_index] = t_value /* * m_window[m_index] */; }
 
-    /// @brief get one value from the current index position.
-    // T receive_output() const noexcept { return m_out_array[m_index]; }
+    void copy_to_output() noexcept { std::copy(m_in_array.begin(), m_in_array.end(), m_out_array.begin()); }
 
     /// @brief advancing by one, this happens synchronousely for both buffers.
     bool advance() noexcept;
@@ -62,7 +61,10 @@ struct CircularSampleBuffer
     size_t m_index{0};
     size_t m_view_size{MAX_BUFFER_SIZE};
     ComplexArr<T, MAX_BUFFER_SIZE> m_in_array{0};
-    // std::array<T, MAX_BUFFER_SIZE> m_out_array{0};
+    ComplexArr<T, MAX_BUFFER_SIZE> m_out_array{0};
+    // Hamming with no overlap sounds best.
+//     const VonHannWindow<T, MAX_BUFFER_SIZE> m_window{};
+//    const HammingWindow<T, MAX_BUFFER_SIZE> m_window{};
 };
 
 template <FloatingPt T, size_t MAX_BUFFER_SIZE>
@@ -90,7 +92,9 @@ bool CircularSampleBuffer<T, MAX_BUFFER_SIZE>::advance() noexcept
 {
     ++m_index;
     // transformation needs to be done when wrapping is needed.
+    // COLA for Hamming = 0.5
     const bool do_transformation = m_index == m_view_size;
+//    const bool do_transformation = (m_index & ~(m_view_size  >> 1)) == (m_view_size >> 1) - 1;
     // mask with the flipped view size
     // m_index & ~m_view_size
     // 01101   & ~(10000) = 01101 & 01111 = 01101

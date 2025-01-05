@@ -34,11 +34,11 @@ inline void test_buffer_manager()
     BufferManager<double> xl_buffer;
     std::ofstream txt_file_with_raw_sine{"raw_sine_values.txt"};
     double xl_array[one_twenty_four];
+    // VonHannWindow<double, BoundedPowTwo_v<size_t, 1024>> window{};
     for (size_t i = 0; i < one_twenty_four; ++i)
     {
-        xl_array[i] = 0.3 * std::sin(6 * 2 * M_PI * static_cast<double>(i) / one_twenty_four) +
-                      0.65 * std::sin(16 * 2 * M_PI * static_cast<double>(i) / one_twenty_four) +
-                      0.9 * std::sin(10 * 2 * M_PI * static_cast<double>(i) / one_twenty_four);
+        xl_array[i] = 0.4 * std::sin(6 * 2 * M_PI * static_cast<double>(i) / one_twenty_four) +
+                      0.8 * std::sin(10 * 2 * M_PI * static_cast<double>(i) / one_twenty_four);
         txt_file_with_raw_sine << xl_array[i] << std::endl;
     }
     auto now = std::chrono::system_clock::now();
@@ -49,7 +49,22 @@ inline void test_buffer_manager()
               << " µs." << std::endl;
 
     // advance one iteration to get the first calculated output
+
+    for (size_t i = 0; i < one_twenty_four; ++i)
+    {
+        xl_array[i] = 0.4 * std::sin(6 * 2 * M_PI * static_cast<double>(i) / one_twenty_four) +
+                      0.8 * std::sin(10 * 2 * M_PI * static_cast<double>(i) / one_twenty_four);
+    }
     xl_buffer.process_daw_chunk(xl_array, one_twenty_four, 1);
+
+    for (size_t i = 0; i < one_twenty_four; ++i)
+    {
+        xl_array[i] = 0.4 * std::sin(6 * 2 * M_PI * static_cast<double>(i) / one_twenty_four) +
+                      0.8 * std::sin(10 * 2 * M_PI * static_cast<double>(i) / one_twenty_four);
+    }
+    xl_buffer.process_daw_chunk(xl_array, one_twenty_four, 1);
+
+
     std::ofstream txt_file_resynthesized{"resynthesized_values.txt"};
     for (double i : xl_array)
     {
@@ -69,7 +84,7 @@ inline void test_buffer_manager()
               << std::chrono::duration_cast<std::chrono::microseconds>(end - now).count() << " µs." << std::endl;
 
     // continous
-    constexpr auto cycles = 1000u;
+    constexpr auto cycles = 5000u;
     now = std::chrono::system_clock::now();
     for (auto i = 0u; i < cycles; ++i)
     {

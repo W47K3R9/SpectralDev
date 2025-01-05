@@ -18,12 +18,14 @@ struct ExponentArray
 {
     ExponentArray()
     {
-        using namespace std::complex_literals;
+        // using namespace std::complex_literals;
         const T resolution = static_cast<T>(1) / ELEMENTS;
         for (size_t index = 0; index < ELEMENTS; ++index)
         {
-            T rising_multiplier =index * resolution;
-            m_array_n[index] = std::exp(-1i * std::numbers::pi_v<T> * rising_multiplier);
+            T rising_multiplier = std::numbers::pi_v<T> * index * resolution;
+            // would have been nicer with complex_literals but then I'm limited to either float OR double...
+            std::complex<T> n_one_j{0, -1};
+            m_array_n[index] = std::exp(n_one_j * rising_multiplier);
         }
     }
     ExponentArray(const ExponentArray&) = delete;
@@ -89,15 +91,15 @@ class ExponentLUT
 
   private:
     size_t m_act_array_index = 0;
-    ExponentArray<double, 1> m_array_2p0{};
-    ExponentArray<double, 2> m_array_2p1{};
-    ExponentArray<double, 4> m_array_2p2{};
-    ExponentArray<double, 8> m_array_2p3{};
-    ExponentArray<double, 16> m_array_2p4{};
-    ExponentArray<double, 32> m_array_2p5{};
-    ExponentArray<double, 64> m_array_2p6{};
-    ExponentArray<double, 128> m_array_2p7{};
-    ExponentArray<double, 256> m_array_2p8{};
-    ExponentArray<double, 512> m_array_2p9{};
+    ExponentArray<T, 1> m_array_2p0{};
+    ExponentArray<T, 2> m_array_2p1{};
+    ExponentArray<T, 4> m_array_2p2{};
+    ExponentArray<T, 8> m_array_2p3{};
+    ExponentArray<T, 16> m_array_2p4{};
+    ExponentArray<T, 32> m_array_2p5{};
+    ExponentArray<T, 64> m_array_2p6{};
+    ExponentArray<T, 128> m_array_2p7{};
+    ExponentArray<T, 256> m_array_2p8{};
+    ExponentArray<T, 512> m_array_2p9{};
 };
 } // namespace LBTS::Spectral

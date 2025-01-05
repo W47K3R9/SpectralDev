@@ -24,5 +24,13 @@ lib_algo_fft = np.abs(lib_algo_fft)
 
 fig,ax = plt.subplots(2)
 ax[0].plot(x_axis, arr_with_sine)
+ax[0].set_ylabel('Amplitude')
+ax[0].set_xlabel('Samples')
+ax[0].set_title('Input')
+
 ax[1].plot(x_axis, arr_with_fft_calc)
+ax[1].set_ylabel('Amplitude')
+ax[1].set_xlabel('Samples')
+ax[1].set_title('Output (FFT)')
+plt.subplots_adjust(hspace=0.5)
 plt.show()
