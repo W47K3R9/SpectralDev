@@ -44,11 +44,9 @@ namespace LBTS::Spectral
  * Function summary:
  * - is_bounded_degree
  * - is_bounded_no_of_samples
- * - is_pow_two
  * - is_bounded_pow_two
  * - pow_two_value_of_degree
  * - degree_of_pow_two_value
- * - clip_to_lower_pow_two
  * - clip_to_lower_bounded_pow_two
  *
  * Struct summary:
@@ -115,16 +113,6 @@ constexpr bool is_bounded_no_of_samples(T no_of_samples) noexcept
     return no_of_samples >= min_num_of_samples && no_of_samples <= max_num_of_samples;
 }
 
-/// @brief Compile- or runtime check if a given number is actually a power of two.
-/// @tparam T: Type of the number to check.
-/// @param number: The number to check.
-/// @return bool
-template <UnsignedL64 T>
-constexpr bool is_pow_two(const T number) noexcept
-{
-    return (number & (number - 1)) == 0;
-}
-
 /// @brief Checks the range, as well as that the number is actually a power of two.
 /// @tparam T: Type of the number to check.
 /// @param number: The number to check.
@@ -132,7 +120,8 @@ constexpr bool is_pow_two(const T number) noexcept
 template <UnsignedL64 T>
 constexpr bool is_bounded_pow_two(const T number) noexcept
 {
-    return is_bounded_no_of_samples(number) && is_pow_two(number);
+    // return is_bounded_no_of_samples(number) && is_pow_two(number);
+    return is_bounded_no_of_samples(number) && std::has_single_bit(number);
 }
 
 /// @brief  Determine the value of a degree of a power of two.
@@ -205,37 +194,6 @@ struct BoundedDegTwo
 template <UnsignedGE16 T, uint8_t deg>
 constexpr T BoundedDegTwo_v = BoundedDegTwo<T, deg>::value;
 
-/// @brief Clamp the given number to the closest lower power of two.
-/// Example:
-/// input:  19 (0b0000'1011)
-/// output: 16 (0b0000'1000)
-/// If the number given is greater than the range of the desired type, only the valid bits are taken into account.
-/// The number get's implicitely casted by the templatization.
-/// Example:
-/// input: clip_to_lower_pow_two<uint8_t>(2565) --> 2565 = (0b1010'0000'0101)
-/// cast: 5 (0b0000'0101)
-/// output: 4 (0b0000'0100)
-/// @tparam T: Type of the passed value to clip (will also be the return type)
-/// @param i_value: Value to clip to lower bound
-/// @return The clamped power of two with type T
-template <UnsignedL64 T>
-constexpr T clip_to_lower_pow_two(T i_value) noexcept
-{
-    if (i_value == 0)
-    {
-        return 1;
-    }
-    constexpr T correct_sized_one = 1;
-    constexpr T size_of_value = correct_sized_one << sizeof(T) * 8 - 1;
-    // won't be greater than 64 (ull) due to UnsignedL64 constraint and even 128 fits in uint8_t.
-    uint8_t first_occurance = 0;
-    while (!((i_value << first_occurance) & size_of_value))
-    {
-        ++first_occurance;
-    }
-    return correct_sized_one << sizeof(T) * 8 - 1 - first_occurance;
-}
-
 /// @brief Like clip_to_lower_pow_two but only for valid plugin values. To guarantee that the max value can be assigned,
 /// a passed type has to be at least 16 bytes large!
 /// @tparam T: Type of the value to clip
@@ -252,7 +210,8 @@ constexpr T clip_to_lower_bounded_pow_two(T i_value) noexcept
     {
         return BoundedPowTwo_v<T, max_num_of_samples>;
     }
-    return clip_to_lower_pow_two(i_value);
+    // explicit type shoudn't be needed since i_value is of type T but just to be sure...
+    return std::bit_floor<T>(i_value);
 }
 
 /// @brief Get the degree of a power of two value.
@@ -267,9 +226,9 @@ template <UnsignedL64 T = uint8_t, UnsignedL64 V = uint64_t>
 constexpr T degree_of_pow_two_value(const V power_to_calculate) noexcept
 {
     V guaranteed_pot = power_to_calculate;
-    if (!is_pow_two(power_to_calculate))
+    if (!std::has_single_bit(power_to_calculate))
     {
-        guaranteed_pot = clip_to_lower_pow_two(power_to_calculate);
+        guaranteed_pot = std::bit_floor(power_to_calculate);
     }
     constexpr V correct_sized_one = 1;
     T first_occurance = 0;

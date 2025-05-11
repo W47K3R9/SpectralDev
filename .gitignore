@@ -1,5 +1,6 @@
 .cache
 build
 cmake-build-debug
-Visualizations/visualenv
+venv
+__pycache__
 **.DS_STORE
