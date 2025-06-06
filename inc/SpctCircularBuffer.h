@@ -50,7 +50,7 @@ struct CircularSampleBuffer
 
     [[nodiscard]] size_t current_index() const noexcept { return m_index; }
 
-    [[nodiscard]] size_t size() const noexcept { return m_view_size; }
+    [[nodiscard]] size_t size() const noexcept { return MAX_BUFFER_SIZE; }
 
     /// @note thought back and forth and came to the conclusion, that I preferred having a friend that knows what to
     /// do with the internal arrays than to allow reference getters for them (or make them public).

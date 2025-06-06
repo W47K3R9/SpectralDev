@@ -7,6 +7,7 @@ target_compile_features(cmpl_flags INTERFACE cxx_std_20)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -Ofast")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
 add_executable(${PROJECT_NAME} main.cpp
@@ -14,9 +15,10 @@ add_executable(${PROJECT_NAME} main.cpp
         inc/SpctProcessingFunctions.h
         inc/SpctCircularBuffer.h
         inc/SpctExponentLUT.h
-        inc/SpctOscillators.h
+        inc/SpctOscillator.h
         inc/SpctWavetables.h
         test/SpctWTTest.h
-        test/SpctBufferManagerTest.h)
+        test/SpctBufferManagerTest.h
+        inc/SpctOscillatorStack.h)
 target_link_libraries(${PROJECT_NAME} PUBLIC cmpl_flags)
 target_include_directories(${PROJECT_NAME} PUBLIC inc)
