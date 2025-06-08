@@ -33,9 +33,8 @@ class BufferManager
     BufferManager& operator=(BufferManager&&) = delete;
     ~BufferManager()
     {
-        std::cout << "destruct." << std::endl;
         m_stop_worker.store(true);
-        m_fft_sync_cv.notify_all();
+        m_fft_sync_cv.notify_one();
         if (m_worker.joinable())
         {
             m_worker.join();
@@ -65,12 +64,11 @@ class BufferManager
             if (m_initiate_fft && (m_act_interval == m_transform_interval))
             {
                 m_ring_buffer.copy_to_output();
-                m_fft_sync_cv.notify_all();
+                m_fft_sync_cv.notify_one();
                 m_act_interval = 0;
                 // set to false to be able to re-calculate the fft
                 m_initiate_fft.store(false);
             }
-
             /// @todo REWORK
             else if (m_initiate_fft && m_act_interval != m_transform_interval)
             {
@@ -110,12 +108,18 @@ class BufferManager
             std::unique_lock lock{m_fft_sync_mtx};
             /// @todo consider adding a predicate.
             m_fft_sync_cv.wait(lock);
-            // pass the whole array as reference to the FFT, will change the input array!
-            spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(m_ring_buffer.m_out_array, m_exponent_lut);
-            // calculate the dominant magnitudes, won't change the input array
-            m_valid_entries = calculate_max_map<T, BUFFER_SIZE>(m_ring_buffer.m_out_array, m_bin_mag_arr, threshold);
-            m_valid_entries = std::clamp<size_t>(m_valid_entries, 0, max_oscillators);
-            m_oscillators.tune_oscillators_to_fft(m_bin_mag_arr, m_valid_entries);
+            // omit trigger at shutdown.
+            if (!m_stop_worker)
+            {
+                // pass the whole array as reference to the FFT, will change the input array!
+                spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(m_ring_buffer.m_out_array,
+                                                                                m_exponent_lut);
+                // calculate the dominant magnitudes, won't change the input array
+                m_valid_entries =
+                    calculate_max_map<T, BUFFER_SIZE>(m_ring_buffer.m_out_array, m_bin_mag_arr, threshold);
+                m_valid_entries = std::clamp<size_t>(m_valid_entries, 0, max_oscillators);
+                m_oscillators.tune_oscillators_to_fft(m_bin_mag_arr, m_valid_entries);
+            }
         }
     }
 
@@ -123,7 +127,7 @@ class BufferManager
     {
         m_initiate_fft.store(false);
         m_stop_worker.store(false);
-        m_worker = std::thread([this]{this->fft_and_tuning(1.0);});
+        m_worker = std::thread([this] { this->fft_and_tuning(1.0); });
     }
 
   private:

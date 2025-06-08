@@ -68,7 +68,7 @@ class ResynthOscs
         {
             summed_output += m_osc_array[active_osc].advance_and_receive_output();
         }
-        return m_amp_correction * summed_output;
+        return summed_output;
     }
 
     /// @brief Tune every oscillator to it's appropriate frequency.
@@ -103,13 +103,14 @@ class ResynthOscs
         const auto relevant_entries = std::views::counted(bin_mag_arr.begin() + from_index, accessible_entries);
         // valid entries is guaranteed to be smaller then max_oscillators!
         size_t nth_osc = 0;
-        std::ranges::for_each(relevant_entries,
-                              [&nth_osc, this](const auto& entry)
-                              {
-                                  set_amp_oscillator_n(nth_osc, entry.second);
-                                  tune_oscillator_n(nth_osc, entry.first * m_freq_resolution);
-                                  nth_osc += 1;
-                              });
+        std::ranges::for_each(
+            relevant_entries,
+            [&nth_osc, this](const auto& entry)
+            {
+                set_amp_oscillator_n(nth_osc, entry.second * m_amp_correction);
+                tune_oscillator_n(nth_osc, entry.first * m_freq_resolution);
+                nth_osc += 1;
+            });
     }
 
     /// @brief Reset all oscillators to a given sampling frequency.
@@ -153,16 +154,8 @@ class ResynthOscs
     }
 
   private:
-    [[nodiscard]] size_t clip_nth_osc(const size_t nth_osc) const noexcept
-    {
-        return std::clamp<size_t>(nth_osc, 0, NUM_OSCS);
-    }
-
-    void tune_oscillator_n(const size_t nth_osc, const T freq) { m_osc_array[clip_nth_osc(nth_osc)].tune(freq); }
-    void set_amp_oscillator_n(const size_t nth_osc, const T amp)
-    {
-        m_osc_array[clip_nth_osc(nth_osc)].set_amplitude(amp);
-    }
+    void tune_oscillator_n(const size_t nth_osc, const T freq) { m_osc_array[nth_osc].tune(freq); }
+    void set_amp_oscillator_n(const size_t nth_osc, const T amp) { m_osc_array[nth_osc].set_amplitude(amp); }
 
   public:
     // generate wavetables

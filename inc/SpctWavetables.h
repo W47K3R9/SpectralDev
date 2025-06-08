@@ -12,6 +12,7 @@
 #pragma once
 
 #include "SpctDomainSpecific.h"
+#include <functional>
 
 namespace LBTS::Spectral
 {

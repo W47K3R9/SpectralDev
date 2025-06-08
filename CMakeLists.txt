@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.20)
 project(spectral_main)
 
 add_library(cmpl_flags INTERFACE)
-target_compile_features(cmpl_flags INTERFACE cxx_std_20)
+target_compile_features(cmpl_flags INTERFACE cxx_std_23)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -Ofast")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O2")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 

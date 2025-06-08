@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <complex>
 #include <numbers>
+#include <bit>
 
 namespace LBTS::Spectral
 {
