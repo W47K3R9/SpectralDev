@@ -7,7 +7,6 @@
  */
 
 #pragma once
-#include <algorithm>
 #include <complex>
 #include <numbers>
 #include <bit>
@@ -78,7 +77,7 @@ constexpr uint32_t min_pow_two_degree = 0;
 constexpr uint32_t max_pow_two_degree = 11;
 constexpr uint32_t min_num_of_samples = 1;
 constexpr uint32_t max_num_of_samples = 2048;
-constexpr uint32_t max_oscillators = 28;
+constexpr uint32_t max_oscillators = 6;
 template <FloatingPt T>
 constexpr T two_pi = std::numbers::pi_v<T> * 2;
 

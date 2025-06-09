@@ -8,6 +8,7 @@
 
 #pragma once
 #include "SpctBufferManager.h"
+#include <iostream>
 #include <fstream>
 
 static void dummy_fill(double* t_arr, const size_t t_arr_size)
@@ -42,7 +43,7 @@ inline void test_buffer_manager()
         txt_file_with_raw_sine << xl_array[i] << std::endl;
     }
     auto now = std::chrono::system_clock::now();
-    xl_buffer.process_daw_chunk(xl_array, one_twenty_four, 1);
+    xl_buffer.process_daw_chunk(xl_array, one_twenty_four);
 
     auto end = std::chrono::system_clock::now();
     std::cout << "Base case algorithm took " << std::chrono::duration_cast<std::chrono::microseconds>(end - now).count()
@@ -55,14 +56,14 @@ inline void test_buffer_manager()
         xl_array[i] = 0.4 * std::sin(6 * 2 * M_PI * static_cast<double>(i) / one_twenty_four) +
                       0.8 * std::sin(10 * 2 * M_PI * static_cast<double>(i) / one_twenty_four);
     }
-    xl_buffer.process_daw_chunk(xl_array, one_twenty_four, 1);
+    xl_buffer.process_daw_chunk(xl_array, one_twenty_four);
 
     for (size_t i = 0; i < one_twenty_four; ++i)
     {
         xl_array[i] = 0.4 * std::sin(6 * 2 * M_PI * static_cast<double>(i) / one_twenty_four) +
                       0.8 * std::sin(10 * 2 * M_PI * static_cast<double>(i) / one_twenty_four);
     }
-    xl_buffer.process_daw_chunk(xl_array, one_twenty_four, 1);
+    xl_buffer.process_daw_chunk(xl_array, one_twenty_four);
 
 
     std::ofstream txt_file_resynthesized{"resynthesized_values.txt"};

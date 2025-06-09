@@ -11,6 +11,8 @@
 #include "SpctDomainSpecific.h"
 #include "SpctWavetables.h"
 
+#include <atomic>
+
 namespace LBTS::Spectral
 {
 
@@ -40,38 +42,30 @@ class WTOscillator
     WTOscillator(WTOscillator&& other) noexcept
     {
         m_table_index = other.m_table_index;
-        m_index_increment.store(other.m_index_increment);
-
-        m_index_increment_old = 0.0f;
-        m_glide_increment = 0.0f;
-        m_glide_fraction = 0.0001f;
-
+        // m_index_increment_from.store(other.m_index_increment_from);
+        m_index_increment_to.store(other.m_index_increment_to);
+        m_glide_fraction = other.m_glide_fraction;
+        m_glide_increment = other.m_glide_increment;
         m_sampling_freq = other.m_sampling_freq;
         m_nyquist_freq = m_sampling_freq / 2.0;
         m_inv_sampling_freq = 1.0 / m_sampling_freq;
-
-        m_wt_ptr = other.m_wt_ptr;
         m_amplitude.store(other.m_amplitude);
-
+        m_wt_ptr = other.m_wt_ptr;
         other.m_wt_ptr = nullptr;
     };
 
     WTOscillator& operator=(WTOscillator&& other) noexcept
     {
         m_table_index = other.m_table_index;
-        m_index_increment.store(other.m_index_increment);
-
-        m_index_increment_old = 0.0f;
-        m_glide_increment = 0.0f;
-        m_glide_fraction = 0.0001f;
-
+        // m_index_increment_from.store(other.m_index_increment_from);
+        m_index_increment_to.store(other.m_index_increment_to);
+        m_glide_fraction = other.m_glide_fraction;
+        m_glide_increment = other.m_glide_increment;
         m_sampling_freq = other.m_sampling_freq;
         m_nyquist_freq = m_sampling_freq / 2.0;
         m_inv_sampling_freq = 1.0 / m_sampling_freq;
-
-        m_wt_ptr = other.m_wt_ptr;
         m_amplitude.store(other.m_amplitude);
-
+        m_wt_ptr = other.m_wt_ptr;
         other.m_wt_ptr = nullptr;
         return *this;
     };
@@ -95,13 +89,13 @@ class WTOscillator
         // 4. get the fraction offset and interpolate the output value
         const float fraction = m_table_index - current_index;
         const T output = value_a + fraction * (value_b - value_a);
-        // 5. apply glide
-        // m_index_increment_old = m_index_increment_old + m_glide_fraction * (m_index_increment -
-        // m_index_increment_old); m_glide_fraction = ((m_glide_fraction += m_glide_increment) < 1.0f) ?
-        // m_glide_fraction : 1.0f;
-        // 6. wrap if needed
-        // if ((m_table_index += m_index_increment_old) >= WT_SIZE)
-        if ((m_table_index += m_index_increment) >= WT_SIZE)
+        // optional glide
+        // m_index_increment_from =
+            // m_index_increment_from + m_glide_fraction * (m_index_increment_to - m_index_increment_from);
+        // m_glide_fraction = ((m_glide_fraction += m_glide_increment) < 1.0f) ? m_glide_fraction : 1.0f;
+        // 5. wrap if needed
+        // if ((m_table_index += m_index_increment_from) >= WT_SIZE)
+        if ((m_table_index += m_index_increment_to) >= WT_SIZE)
         {
             m_table_index -= WT_SIZE;
         }
@@ -112,8 +106,9 @@ class WTOscillator
     /// @param sampling_freq The wanted sampling frequency.
     void reset(const double sampling_freq) noexcept
     {
+        m_amplitude = 0.0;
         m_table_index = 0.0f;
-        m_index_increment = 0.0f;
+        // m_index_increment_from = 0.0f;
         m_sampling_freq = sampling_freq;
         m_nyquist_freq = sampling_freq / 2.0;
         m_inv_sampling_freq = 1.0 / sampling_freq;
@@ -123,17 +118,17 @@ class WTOscillator
     /// @param to_freq The oscillator will output it's waveform with this frequency (in Hz).
     void tune(T to_freq) noexcept
     {
-        m_index_increment_old = m_index_increment;
+        // m_index_increment_from.store(m_index_increment_to);
         // be sure not to tune above nyquist!
         to_freq = std::clamp<T>(to_freq, 0, m_nyquist_freq);
         // increment = N_WT * f0 / fs
         // steps from one sample to the next
-        m_index_increment = WT_SIZE * to_freq * m_inv_sampling_freq;
+        m_index_increment_to = WT_SIZE * to_freq * m_inv_sampling_freq;
     }
 
     /// @brief Set the amplitude of an oscillator
     /// @param amplitude value of the amplitude
-    void set_amplitude(T amplitude) noexcept { m_amplitude = amplitude; }
+    void set_amplitude(T amplitude) noexcept { m_amplitude.store(amplitude); }
 
     /// @brief Change the look up table.
     /// @param wt_ptr A pointer to the wanted lookup table.
@@ -142,16 +137,17 @@ class WTOscillator
   private:
     // float is precise enough for interpolation between indices
     float m_table_index = 0.0f;
-    std::atomic<float> m_index_increment = 0.0f;
-
-    float m_index_increment_old = 0.0f;
+    // std::atomic<float> m_index_increment_from = 0.0f;
+    std::atomic<float> m_index_increment_to = 0.0f;
     float m_glide_increment = 0.0f;
     float m_glide_fraction = 0.0001f;
+
+    /// @todo this should be a configurable parameter!
+    std::atomic<T> m_amplitude = 0;
 
     double m_sampling_freq = 44100.0;
     double m_nyquist_freq = m_sampling_freq / 2.0;
     double m_inv_sampling_freq = 1.0 / m_sampling_freq;
     const WaveTable<T, WT_SIZE>* m_wt_ptr = nullptr;
-    std::atomic<T> m_amplitude = 1;
 };
 } // namespace LBTS::Spectral

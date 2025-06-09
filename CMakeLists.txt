@@ -19,6 +19,8 @@ add_executable(${PROJECT_NAME} main.cpp
         inc/SpctWavetables.h
         test/SpctWTTest.h
         test/SpctBufferManagerTest.h
-        inc/SpctOscillatorStack.h)
+        inc/SpctOscillatorStack.h
+        test/VoiceSampleArray.h
+        test/SpctRealVoiceTest.h)
 target_link_libraries(${PROJECT_NAME} PUBLIC cmpl_flags)
 target_include_directories(${PROJECT_NAME} PUBLIC inc)

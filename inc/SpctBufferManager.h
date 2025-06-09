@@ -41,13 +41,23 @@ class BufferManager
         }
     }
 
+    void clear_buffers() noexcept
+    {
+        m_ring_buffer.reset_buffers();
+    }
+
+    void mute_oscillators() noexcept
+    {
+        m_oscillators.mute_oscillators();
+    }
+
     /// @brief main processing is done in here since Juce works with C-style arrays this takes in T* as first address
     /// of the array.
-    void process_daw_chunk(T* daw_chunk, const size_t t_size, const T threshold = 1)
+    void process_daw_chunk(T* daw_chunk, const size_t t_size)
     {
         // in case the daw buffer is greater then the internal one, more steps are needed.
         // The narrowing conversion is WANTED!
-        const size_t steps_needed = t_size > m_buffer_size ? std::ceil(static_cast<float>(t_size) / m_buffer_size)
+        const size_t steps_needed = t_size > BUFFER_SIZE ? std::ceil(static_cast<float>(t_size) / BUFFER_SIZE)
                                                            : 1; // NOLINT(*-narrowing-conversions)
         size_t daw_chunk_write_index = 0;
         for (size_t step = 0; step < steps_needed; ++step)
@@ -63,7 +73,6 @@ class BufferManager
             }
             if (m_initiate_fft && (m_act_interval == m_transform_interval))
             {
-                m_ring_buffer.copy_to_output();
                 m_fft_sync_cv.notify_one();
                 m_act_interval = 0;
                 // set to false to be able to re-calculate the fft
@@ -101,7 +110,7 @@ class BufferManager
     [[nodiscard]] size_t ring_buffer_index() const noexcept { return m_ring_buffer.current_index(); }
 
   private:
-    void fft_and_tuning(const T threshold)
+    void fft_and_tuning()
     {
         while (!m_stop_worker)
         {
@@ -111,12 +120,13 @@ class BufferManager
             // omit trigger at shutdown.
             if (!m_stop_worker)
             {
+                m_ring_buffer.copy_to_output();
                 // pass the whole array as reference to the FFT, will change the input array!
                 spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(m_ring_buffer.m_out_array,
                                                                                 m_exponent_lut);
                 // calculate the dominant magnitudes, won't change the input array
                 m_valid_entries =
-                    calculate_max_map<T, BUFFER_SIZE>(m_ring_buffer.m_out_array, m_bin_mag_arr, threshold);
+                    calculate_max_map<T, BUFFER_SIZE>(m_ring_buffer.m_out_array, m_bin_mag_arr, m_threshold);
                 m_valid_entries = std::clamp<size_t>(m_valid_entries, 0, max_oscillators);
                 m_oscillators.tune_oscillators_to_fft(m_bin_mag_arr, m_valid_entries);
             }
@@ -127,12 +137,11 @@ class BufferManager
     {
         m_initiate_fft.store(false);
         m_stop_worker.store(false);
-        m_worker = std::thread([this] { this->fft_and_tuning(1.0); });
+        m_worker = std::thread([this] { this->fft_and_tuning(); });
     }
 
   private:
     CircularSampleBuffer<T, BUFFER_SIZE> m_ring_buffer{};
-    size_t m_buffer_size = m_ring_buffer.size();
     ExponentLUT<T> m_exponent_lut{};
     BinMagArr<T, (BUFFER_SIZE >> 1)> m_bin_mag_arr;
     size_t m_valid_entries = 0;
@@ -140,12 +149,15 @@ class BufferManager
     double m_sampling_freq = 44100.0;
     ResynthOscs<T, BoundedPowTwo_v<size_t, 512>, BUFFER_SIZE> m_oscillators{m_sampling_freq};
 
+    std::atomic<T> m_threshold = static_cast<T>(0.01);
+
     std::mutex m_fft_sync_mtx;
     std::condition_variable m_fft_sync_cv;
     std::atomic_bool m_initiate_fft;
 
     std::atomic_bool m_stop_worker;
     std::thread m_worker;
+
     // Skip every n_th transformation...
     /// @todo this MUST be reworked somehow.
     const unsigned int m_transform_interval = 0;

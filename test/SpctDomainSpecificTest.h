@@ -7,6 +7,7 @@
  */
 #pragma once
 #include "SpctDomainSpecific.h"
+#include <cassert>
 #include <iostream>
 
 namespace LBTS::Spectral

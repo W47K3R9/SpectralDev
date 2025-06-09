@@ -9,8 +9,10 @@
 #pragma once
 #include "SpctDomainSpecific.h"
 #include "SpctExponentLUT.h"
+#include <algorithm>
 #include <array>
 #include <complex>
+#include <iostream>
 
 namespace LBTS::Spectral
 {
@@ -69,7 +71,7 @@ void spct_fourier_transform(ComplexArr<T, pow_two_value_of_degree(DEG_TWO)>& sam
             {
                 const auto butterfly_ndx_1 = outer_ndx * current_pot + inner_ndx;
                 const auto butterfly_ndx_2 = butterfly_ndx_1 + (current_pot >> 1);
-                std::complex<T> tau = exponent_lut[inner_ndx] * samples_arr[butterfly_ndx_2];
+                const std::complex<T> tau = exponent_lut[inner_ndx] * samples_arr[butterfly_ndx_2];
                 samples_arr[butterfly_ndx_2] = samples_arr[butterfly_ndx_1] - tau;
                 samples_arr[butterfly_ndx_1] += tau;
             }
@@ -82,11 +84,11 @@ void spct_fourier_transform(ComplexArr<T, pow_two_value_of_degree(DEG_TWO)>& sam
 template <FloatingPt T, size_t N_SAMPLES = BoundedPowTwo_v<size_t, 1024>>
     requires(is_bounded_pow_two(N_SAMPLES))
 [[nodiscard]] size_t calculate_max_map(const ComplexArr<T, N_SAMPLES>& samples_arr,
-                                       BinMagArr<T, (N_SAMPLES >> 1)>& bin_mag_arr, const T threshold)
+                                       BinMagArr<T, (N_SAMPLES >> 1)>& bin_mag_arr, const T threshold = 0.01)
 {
-    // in order not to treat some arbitrary rounding errors like 1e-13 as valid magnitudes, everything beyond 1 is
+    // in order not to treat some arbitrary rounding errors like 1e-13 as valid magnitudes, everything beyond 0.01 is
     // interpreted as 0.
-    const T clipped_threshold = threshold >= 1 ? threshold : 1;
+    const auto clipped_threshold = std::clamp<T>(threshold, 0.01, threshold);
     size_t valid_entries = 0;
     for (size_t bin_number = 0; bin_number < N_SAMPLES >> 1; ++bin_number)
     {

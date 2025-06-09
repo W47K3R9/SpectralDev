@@ -8,6 +8,7 @@
 #pragma once
 #include "SpctOscillator.h"
 #include "SpctWavetables.h"
+#include <cassert>
 
 namespace LBTS::Spectral
 {
@@ -22,8 +23,7 @@ using OscArray = std::array<WTOscillator<T, WT_SIZE>, NUM_OSCS>;
 /// @tparam T The type of the wavetable entries.
 /// @tparam WT_SIZE The size of the wavetable that will be read.
 /// @tparam FFT_SIZE Samples used for the fourier transformation.
-template <FloatingPt T, size_t WT_SIZE, size_t FFT_SIZE, size_t NUM_OSCS = max_oscillators,
-          size_t HALF_FFT_SIZE = FFT_SIZE / 2u>
+template <FloatingPt T, size_t WT_SIZE, size_t FFT_SIZE, size_t NUM_OSCS = max_oscillators>
     requires(is_bounded_pow_two(WT_SIZE))
 class ResynthOscs
 {
@@ -76,7 +76,7 @@ class ResynthOscs
     /// frequency calculation).
     /// @param valid_entries How many oscillators should play (determined by the maximum available oscillators and the
     /// amplitudes above a given threshold).
-    void tune_oscillators(const BinMagArr<T, HALF_FFT_SIZE>& bin_mag_arr, const size_t valid_entries) noexcept
+    void tune_oscillators(const BinMagArr<T, (FFT_SIZE >> 1)>& bin_mag_arr, const size_t valid_entries) noexcept
     {
         // valid entries is guaranteed to be smaller then max_oscillators!
         for (size_t active_osc = 0; active_osc < valid_entries; ++active_osc)
@@ -93,7 +93,7 @@ class ResynthOscs
     /// managed by an ResynthOscs block, the higher numbers will be ignored.
     /// @param from_index Starting of the FFT index, be sure that from_index + entries > bin_mag_arr.size, not to access
     /// an invalid array position.
-    void tune_oscillators_to_fft(const BinMagArr<T, HALF_FFT_SIZE>& bin_mag_arr, const size_t entries,
+    void tune_oscillators_to_fft(const BinMagArr<T, (FFT_SIZE >> 1)>& bin_mag_arr, const size_t entries,
                                  const size_t from_index = 0) noexcept
     {
         // std::cout << "entries: " << entries << '\n';
@@ -111,6 +111,15 @@ class ResynthOscs
                 tune_oscillator_n(nth_osc, entry.first * m_freq_resolution);
                 nth_osc += 1;
             });
+    }
+
+    void mute_oscillators() noexcept
+    {
+        // valid entries is guaranteed to be smaller then max_oscillators!
+        for (auto& osc : m_osc_array)
+        {
+            osc.set_amplitude(0);
+        }
     }
 
     /// @brief Reset all oscillators to a given sampling frequency.
