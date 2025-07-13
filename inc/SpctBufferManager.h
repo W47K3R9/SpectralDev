@@ -9,7 +9,6 @@
 #include "SpctExponentLUT.h"
 #include "SpctOscillatorStack.h"
 #include "SpctProcessingFunctions.h"
-#include <cmath>
 #include <future>
 
 /**
@@ -41,15 +40,18 @@ class BufferManager
         }
     }
 
-    void clear_buffers() noexcept
+    /// @brief Increase or decrease the amount of used oscillators.
+    /// @param num_voices Number of voices (in that case oscillators to play)
+    void set_voices(const size_t num_voices) noexcept { m_voices = std::clamp<size_t>(num_voices, 0, max_oscillators); }
+
+    void set_threshold(const T threshold) noexcept
     {
-        m_ring_buffer.reset_buffers();
+        m_threshold = threshold;
     }
 
-    void mute_oscillators() noexcept
-    {
-        m_oscillators.mute_oscillators();
-    }
+    void clear_buffers() noexcept { m_ring_buffer.reset_buffers(); }
+
+    void mute_oscillators() noexcept { m_oscillators.mute_oscillators(); }
 
     /// @brief main processing is done in here since Juce works with C-style arrays this takes in T* as first address
     /// of the array.
@@ -58,7 +60,7 @@ class BufferManager
         // in case the daw buffer is greater then the internal one, more steps are needed.
         // The narrowing conversion is WANTED!
         const size_t steps_needed = t_size > BUFFER_SIZE ? std::ceil(static_cast<float>(t_size) / BUFFER_SIZE)
-                                                           : 1; // NOLINT(*-narrowing-conversions)
+                                                         : 1; // NOLINT(*-narrowing-conversions)
         size_t daw_chunk_write_index = 0;
         for (size_t step = 0; step < steps_needed; ++step)
         {
@@ -125,10 +127,8 @@ class BufferManager
                 spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(m_ring_buffer.m_out_array,
                                                                                 m_exponent_lut);
                 // calculate the dominant magnitudes, won't change the input array
-                m_valid_entries =
-                    calculate_max_map<T, BUFFER_SIZE>(m_ring_buffer.m_out_array, m_bin_mag_arr, m_threshold);
-                m_valid_entries = std::clamp<size_t>(m_valid_entries, 0, max_oscillators);
-                m_oscillators.tune_oscillators_to_fft(m_bin_mag_arr, m_valid_entries);
+                calculate_max_map<T, BUFFER_SIZE>(m_ring_buffer.m_out_array, m_bin_mag_arr, m_threshold);
+                m_oscillators.tune_oscillators_to_fft(m_bin_mag_arr, m_voices);
             }
         }
     }
@@ -144,12 +144,11 @@ class BufferManager
     CircularSampleBuffer<T, BUFFER_SIZE> m_ring_buffer{};
     ExponentLUT<T> m_exponent_lut{};
     BinMagArr<T, (BUFFER_SIZE >> 1)> m_bin_mag_arr;
-    size_t m_valid_entries = 0;
     // Juce uses double as sample frequency, since I'll use the framework for deployment I'll use double too.
     double m_sampling_freq = 44100.0;
     ResynthOscs<T, BoundedPowTwo_v<size_t, 512>, BUFFER_SIZE> m_oscillators{m_sampling_freq};
 
-    std::atomic<T> m_threshold = static_cast<T>(0.01);
+    std::atomic<T> m_threshold = min_gain_threshold<T>;
 
     std::mutex m_fft_sync_mtx;
     std::condition_variable m_fft_sync_cv;
@@ -162,6 +161,7 @@ class BufferManager
     /// @todo this MUST be reworked somehow.
     const unsigned int m_transform_interval = 0;
     unsigned int m_act_interval = 0;
+    std::atomic_size_t m_voices = 4;
 };
 
 } // namespace LBTS::Spectral

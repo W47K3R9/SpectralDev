@@ -8,11 +8,11 @@
 
 #pragma once
 #include "SpctDomainSpecific.h"
+#include <iostream>
 #include "SpctExponentLUT.h"
 #include <algorithm>
 #include <array>
 #include <complex>
-#include <iostream>
 
 namespace LBTS::Spectral
 {
@@ -83,12 +83,12 @@ void spct_fourier_transform(ComplexArr<T, pow_two_value_of_degree(DEG_TWO)>& sam
 
 template <FloatingPt T, size_t N_SAMPLES = BoundedPowTwo_v<size_t, 1024>>
     requires(is_bounded_pow_two(N_SAMPLES))
-[[nodiscard]] size_t calculate_max_map(const ComplexArr<T, N_SAMPLES>& samples_arr,
-                                       BinMagArr<T, (N_SAMPLES >> 1)>& bin_mag_arr, const T threshold = 0.01)
+void calculate_max_map(const ComplexArr<T, N_SAMPLES>& samples_arr, BinMagArr<T, (N_SAMPLES >> 1)>& bin_mag_arr,
+                       const T threshold = min_gain_threshold<T>)
 {
     // in order not to treat some arbitrary rounding errors like 1e-13 as valid magnitudes, everything beyond 0.01 is
     // interpreted as 0.
-    const auto clipped_threshold = std::clamp<T>(threshold, 0.01, threshold);
+    const auto clipped_threshold = std::clamp<T>(threshold, min_gain_threshold<T>, N_SAMPLES >> 1);
     size_t valid_entries = 0;
     for (size_t bin_number = 0; bin_number < N_SAMPLES >> 1; ++bin_number)
     {
@@ -104,7 +104,6 @@ template <FloatingPt T, size_t N_SAMPLES = BoundedPowTwo_v<size_t, 1024>>
                       bin_mag_arr.end(),
                       [](const std::pair<size_t, T>& pair_a, const std::pair<size_t, T>& pair_b) -> bool
                       { return pair_a.second > pair_b.second; });
-    return valid_entries;
 }
 
 } // namespace LBTS::Spectral

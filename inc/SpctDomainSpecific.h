@@ -64,7 +64,7 @@ template <typename T>
 concept FloatingPt = std::is_floating_point_v<T>;
 
 /// @brief Used to select the waveform for resynthesizing.
-enum class OscWaveform
+enum class OscWaveform : std::uint8_t
 {
     SINE,
     TRIANGLE,
@@ -77,7 +77,11 @@ constexpr uint32_t min_pow_two_degree = 0;
 constexpr uint32_t max_pow_two_degree = 11;
 constexpr uint32_t min_num_of_samples = 1;
 constexpr uint32_t max_num_of_samples = 2048;
-constexpr uint32_t max_oscillators = 6;
+constexpr uint32_t max_oscillators = 46;
+
+template <FloatingPt T>
+constexpr T min_gain_threshold = 0.01;
+
 template <FloatingPt T>
 constexpr T two_pi = std::numbers::pi_v<T> * 2;
 

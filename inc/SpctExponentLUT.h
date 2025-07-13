@@ -32,6 +32,7 @@ struct ExponentArray
     ExponentArray(ExponentArray&&) = delete;
     ExponentArray& operator=(const ExponentArray&) = delete;
     ExponentArray& operator=(const ExponentArray&&) = delete;
+    ~ExponentArray() = default;
 
     /// @brief WARNING! To have the maximum speed available there is NO CHECK with the bracket operator.
     [[nodiscard]] std::complex<T> operator[](const size_t ndx) const { return m_array_n[ndx]; }

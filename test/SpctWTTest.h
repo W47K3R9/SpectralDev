@@ -6,7 +6,6 @@
  */
 
 #pragma once
-#include "SpctOscillator.h"
 #include "SpctWavetables.h"
 
 namespace LBTS::Spectral
@@ -18,6 +17,8 @@ inline void test_wavetable_creation()
     assert(m_sine_wt[125] > 0);
     assert(m_sine_wt[129] < 0);
     assert(m_sine_wt[255] < 0);
+    m_sine_wt.equalize_end_and_begin();
+    assert(m_sine_wt[255] == 0);
 
     const SquareWT<double, 256> m_square_wt{};
     assert(m_square_wt[0] == -1);

@@ -40,6 +40,7 @@ inline void test_real_voice()
     double xl_array[one_twenty_four];
     std::ranges::copy(VoiceExmp::sample_array, xl_array);
 
+    xl_buffer.set_voices(8);
     xl_buffer.process_daw_chunk(xl_array, one_twenty_four);
 
     const auto end = std::chrono::system_clock::now();
