@@ -12,9 +12,21 @@
 #include "SpctWavetables.h"
 
 #include <atomic>
+#include <mutex>
+#include <valarray>
 
 namespace LBTS::Spectral
 {
+
+
+
+// static constexpr size_t clamp_index(size_t* object_index_ptr)
+// {
+//     // 0111 -> 0111
+//     // 1000 -> 0111
+//     const uint8_t bit_1 =
+//    return 0;
+// }
 
 /// @brief A single wavetable oscillator.
 /// @tparam T The type of the wavetable entries.
@@ -44,23 +56,19 @@ class WTOscillator
     WTOscillator(WTOscillator&& other) noexcept
         : m_table_index(other.m_table_index),
           m_sampling_freq(other.m_sampling_freq),
-          m_wt_ptr(other.m_wt_ptr)
+          m_wt_ptr(other.m_wt_ptr),
+          m_freq_glide_arr(other.m_freq_glide_arr),
+          m_amp_glide_arr(other.m_amp_glide_arr)
     {
-        // m_index_increment_from.store(other.m_index_increment_from);
-        m_index_increment.store(other.m_index_increment);
-        m_amplitude.store(other.m_amplitude);
         other.m_wt_ptr = nullptr;
     };
 
     WTOscillator& operator=(WTOscillator&& other) noexcept
     {
         m_table_index = other.m_table_index;
-        // m_index_increment_from.store(other.m_index_increment_from);
-        m_index_increment.store(other.m_index_increment);
         m_sampling_freq = other.m_sampling_freq;
         m_nyquist_freq = m_sampling_freq / 2.0;
         m_inv_sampling_freq = 1.0 / m_sampling_freq;
-        m_amplitude.store(other.m_amplitude);
         m_wt_ptr = other.m_wt_ptr;
         other.m_wt_ptr = nullptr;
         return *this;
@@ -114,18 +122,23 @@ class WTOscillator
         const float fraction = m_table_index - static_cast<float>(current_index);
         const T output = value_a + (fraction * (value_b - value_a));
         // 5. wrap if needed
-        if ((m_table_index += m_index_increment) >= (m_internal_size))
+        if (const auto index_incr = m_freq_glide_arr[m_freq_glide_index];
+            (m_table_index += index_incr) >= (m_internal_size))
         {
             m_table_index -= m_internal_size;
         }
-        return output * m_amplitude;
+
+        const T sample = output * m_amp_glide_arr[m_amp_glide_index];
+
+        m_amp_glide_index = std::clamp<size_t>(++m_amp_glide_index, 0, GLIDE_SIZE - 1);
+        m_freq_glide_index = std::clamp<size_t>(++m_freq_glide_index, 0, GLIDE_SIZE - 1);
+        return sample;
     }
 
     /// @brief Resets the sampling frequency as specified and the table index to 0.
     /// @param sampling_freq The wanted sampling frequency.
     void reset(const double sampling_freq) noexcept
     {
-        m_amplitude = 0.0;
         m_table_index = 0.0f;
         m_sampling_freq = sampling_freq;
         m_nyquist_freq = sampling_freq / 2.0;
@@ -141,12 +154,34 @@ class WTOscillator
         to_freq = std::clamp<T>(to_freq, 0, m_nyquist_freq);
         // increment = N_WT * f0 / fs
         // steps from one sample to the next.
-        m_index_increment = m_internal_size * to_freq * m_inv_sampling_freq;
+        const auto end_val = m_internal_size * to_freq * m_inv_sampling_freq;
+        const auto start_val = m_freq_glide_arr.front();
+        uint8_t current_index = 0;
+        for (auto& val : m_freq_glide_arr)
+        {
+            ++current_index;
+            const auto fract = static_cast<float>(current_index) / static_cast<float>(GLIDE_SIZE);
+            val = start_val + fract * (end_val - start_val);
+        }
+        m_freq_glide_index = 0;
     }
 
     /// @brief Set the amplitude of an oscillator
     /// @param amplitude value of the amplitude
-    void set_amplitude(T amplitude) noexcept { m_amplitude.store(amplitude); }
+    void set_amplitude(T amplitude) noexcept
+    {
+        const auto end_val = amplitude;
+        const auto start_val = m_amp_glide_arr.front();
+        uint8_t current_index = 0;
+        for (auto& val : m_amp_glide_arr)
+        {
+            ++current_index;
+            const auto fract = static_cast<float>(current_index) / static_cast<float>(GLIDE_SIZE);
+            val = start_val + fract * (end_val - start_val);
+        }
+        m_amp_glide_index = 0;
+    }
+
 
     /// @brief Change the look up table.
     /// @param wt_ptr A pointer to the wanted lookup table.
@@ -155,15 +190,18 @@ class WTOscillator
   private:
     // float is precise enough for interpolation between indices
     float m_table_index = 0.0f;
-    std::atomic<float> m_index_increment = 0.0f;
-
-    /// @todo this should be a configurable parameter!
-    std::atomic<T> m_amplitude = 0;
 
     double m_sampling_freq = 44100.0;
     double m_nyquist_freq = m_sampling_freq / 2.0;
     double m_inv_sampling_freq = 1.0 / m_sampling_freq;
     const WaveTable<T, WT_SIZE>* m_wt_ptr = nullptr;
     static constexpr size_t m_internal_size = WT_SIZE - 1;
+
+    static constexpr auto GLIDE_SIZE = BoundedPowTwo_v<size_t, 8>;
+    std::array<float, GLIDE_SIZE> m_freq_glide_arr{};
+    std::atomic<size_t> m_freq_glide_index = 0;
+    std::array<T, GLIDE_SIZE> m_amp_glide_arr{};
+    std::atomic<size_t> m_amp_glide_index = 0;
+
 };
 } // namespace LBTS::Spectral
