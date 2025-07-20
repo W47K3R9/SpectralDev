@@ -9,6 +9,7 @@
 #pragma once
 #include <ranges>
 #include "SpctDomainSpecific.h"
+#include "SpctWavetables.h"
 
 namespace LBTS::Spectral
 {
@@ -46,12 +47,11 @@ struct CircularSampleBuffer
 
     /// @brief shove one value in the current index position.
     /// In regular FFT it would make sense to window the input but a rectangular window sounds best in this scenario.
-    void fill_input(const T t_value) noexcept { m_in_array[m_ringbuffer_index] = t_value; }
-    // void fill_input(const T t_value) noexcept { m_in_array[m_ringbuffer_index] = t_value * m_window[m_window_index]; }
+    // void fill_input(const T t_value) noexcept { m_in_array[m_ringbuffer_index] = t_value; }
+    void fill_input(const T t_value) noexcept { m_in_array[m_ringbuffer_index] = t_value * m_window[m_window_index]; }
 
     void copy_to_output() noexcept
     {
-        // unfortunately apple clang does not support ranges::zip... for whatever fucking reason!
         // auto windowed_in = std::views::iota(static_cast<size_t>(0), m_in_array.size()) |
         //                    std::views::transform([this](size_t ndx) { return m_in_array[ndx] * m_window[ndx]; });
         // std::ranges::copy(windowed_in, m_out_array.begin());
@@ -92,8 +92,8 @@ struct CircularSampleBuffer
     ComplexArr<T, MAX_BUFFER_SIZE> m_out_array{0};
     // Hamming with no overlap sounds best.
     size_t m_window_index{0};
-    // const VonHannWindow<T, QUARTER_BUFFER_SIZE> m_window{};
-    // const HammingWindow<T, MAX_BUFFER_SIZE> m_window{};
+    // VonHannWindow<T, QUARTER_BUFFER_SIZE> m_window{};
+    HammingWindow<T, MAX_BUFFER_SIZE> m_window{};
     // const BartlettWindow<T, MAX_BUFFER_SIZE> m_window{};
 };
 

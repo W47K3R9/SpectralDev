@@ -75,6 +75,7 @@ class BufferManager
             }
             if (m_initiate_fft && (m_act_interval == m_transform_interval))
             {
+                m_ring_buffer.copy_to_output();
                 m_fft_sync_cv.notify_one();
                 m_act_interval = 0;
                 // set to false to be able to re-calculate the fft
@@ -122,11 +123,10 @@ class BufferManager
             // omit trigger at shutdown.
             if (!m_stop_worker)
             {
-                m_ring_buffer.copy_to_output();
-                // pass the whole array as reference to the FFT, will change the input array!
+                // pass the whole array as reference to the FFT, will change the output array!
                 spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(m_ring_buffer.m_out_array,
                                                                                 m_exponent_lut);
-                // calculate the dominant magnitudes, won't change the input array
+                // calculate the dominant magnitudes, won't change the output array
                 calculate_max_map<T, BUFFER_SIZE>(m_ring_buffer.m_out_array, m_bin_mag_arr, m_threshold);
                 m_oscillators.tune_oscillators_to_fft(m_bin_mag_arr, m_voices);
             }
