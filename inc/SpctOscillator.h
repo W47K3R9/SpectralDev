@@ -12,13 +12,12 @@
 #include "SpctWavetables.h"
 
 #include <atomic>
+#include <iostream>
 #include <mutex>
 #include <valarray>
 
 namespace LBTS::Spectral
 {
-
-
 
 // static constexpr size_t clamp_index(size_t* object_index_ptr)
 // {
@@ -60,6 +59,8 @@ class WTOscillator
           m_freq_glide_arr(other.m_freq_glide_arr),
           m_amp_glide_arr(other.m_amp_glide_arr)
     {
+        m_freq_glide_index.store(other.m_freq_glide_index);
+        m_amp_glide_index.store(other.m_amp_glide_index);
         other.m_wt_ptr = nullptr;
     };
 
@@ -71,6 +72,10 @@ class WTOscillator
         m_inv_sampling_freq = 1.0 / m_sampling_freq;
         m_wt_ptr = other.m_wt_ptr;
         other.m_wt_ptr = nullptr;
+        m_freq_glide_arr = other.m_freq_glide_arr;
+        m_freq_glide_index.store(other.m_freq_glide_index);
+        m_amp_glide_arr = other.m_amp_glide_arr;
+        m_amp_glide_index.store(other.m_amp_glide_index);
         return *this;
     };
 
@@ -127,11 +132,17 @@ class WTOscillator
         {
             m_table_index -= m_internal_size;
         }
-
         const T sample = output * m_amp_glide_arr[m_amp_glide_index];
-
-        m_amp_glide_index = std::clamp<size_t>(++m_amp_glide_index, 0, GLIDE_SIZE - 1);
-        m_freq_glide_index = std::clamp<size_t>(++m_freq_glide_index, 0, GLIDE_SIZE - 1);
+        m_amp_glide_index = std::clamp<size_t>(++m_amp_glide_index, 0, GLIDE_SIZE);
+        if (m_amp_glide_index == GLIDE_SIZE)
+        {
+            m_amp_glide_arr.back() = m_amp_glide_arr[GLIDE_SIZE - 1];
+        }
+        m_freq_glide_index = std::clamp<size_t>(++m_freq_glide_index, 0, GLIDE_SIZE);
+        if (m_freq_glide_index == GLIDE_SIZE)
+        {
+            m_freq_glide_arr.back() = m_freq_glide_arr[GLIDE_SIZE - 1];
+        }
         return sample;
     }
 
@@ -143,6 +154,8 @@ class WTOscillator
         m_sampling_freq = sampling_freq;
         m_nyquist_freq = sampling_freq / 2.0;
         m_inv_sampling_freq = 1.0 / sampling_freq;
+        m_amp_glide_index = 0;
+        m_freq_glide_index = 0;
     }
 
     /// @brief This will set the increment rate inside the wavetable.
@@ -156,13 +169,15 @@ class WTOscillator
         // steps from one sample to the next.
         const auto end_val = m_internal_size * to_freq * m_inv_sampling_freq;
         const auto start_val = m_freq_glide_arr.front();
-        uint8_t current_index = 0;
-        for (auto& val : m_freq_glide_arr)
+        for (uint8_t current_ndx = 0; current_ndx < GLIDE_SIZE; ++current_ndx)
         {
-            ++current_index;
-            const auto fract = static_cast<float>(current_index) / static_cast<float>(GLIDE_SIZE);
-            val = start_val + fract * (end_val - start_val);
+            const auto fract = static_cast<float>(current_ndx) * INV_GLIDE_SIZE;
+            // The array boundaries can't be crossed.
+            // NOLINTBEGIN(*-pro-bounds-constant-array-index)
+            m_freq_glide_arr[current_ndx] = start_val + fract * (end_val - start_val);
+            // NOLINTEND(*-pro-bounds-constant-array-index)
         }
+
         m_freq_glide_index = 0;
     }
 
@@ -172,16 +187,13 @@ class WTOscillator
     {
         const auto end_val = amplitude;
         const auto start_val = m_amp_glide_arr.front();
-        uint8_t current_index = 0;
-        for (auto& val : m_amp_glide_arr)
+        for (uint8_t current_ndx = 0; current_ndx < GLIDE_SIZE; ++current_ndx)
         {
-            ++current_index;
-            const auto fract = static_cast<float>(current_index) / static_cast<float>(GLIDE_SIZE);
-            val = start_val + fract * (end_val - start_val);
+            const auto fract = static_cast<float>(current_ndx) * INV_GLIDE_SIZE;
+            m_amp_glide_arr[current_ndx] = start_val + fract * (end_val - start_val);
         }
         m_amp_glide_index = 0;
     }
-
 
     /// @brief Change the look up table.
     /// @param wt_ptr A pointer to the wanted lookup table.
@@ -197,11 +209,11 @@ class WTOscillator
     const WaveTable<T, WT_SIZE>* m_wt_ptr = nullptr;
     static constexpr size_t m_internal_size = WT_SIZE - 1;
 
-    static constexpr auto GLIDE_SIZE = BoundedPowTwo_v<size_t, 8>;
-    std::array<float, GLIDE_SIZE> m_freq_glide_arr{};
+    static constexpr auto GLIDE_SIZE = BoundedPowTwo_v<size_t, 32>;
+    static constexpr auto INV_GLIDE_SIZE = 1.0f / static_cast<float>(GLIDE_SIZE);
+    std::array<float, GLIDE_SIZE + 1> m_freq_glide_arr{};
     std::atomic<size_t> m_freq_glide_index = 0;
-    std::array<T, GLIDE_SIZE> m_amp_glide_arr{};
+    std::array<T, GLIDE_SIZE + 1> m_amp_glide_arr{};
     std::atomic<size_t> m_amp_glide_index = 0;
-
 };
 } // namespace LBTS::Spectral
