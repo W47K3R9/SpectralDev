@@ -32,21 +32,36 @@ class BufferManager
     BufferManager& operator=(BufferManager&&) = delete;
     ~BufferManager()
     {
-        m_stop_worker.store(true);
-        m_fft_sync_cv.notify_one();
+        stop();
         if (m_worker.joinable())
         {
             m_worker.join();
         }
+    }
+    void stop()
+    {
+        m_stop_worker.store(true);
+        m_fft_sync_cv.notify_all();
     }
 
     /// @brief Increase or decrease the amount of used oscillators.
     /// @param num_voices Number of voices (in that case oscillators to play)
     void set_voices(const size_t num_voices) noexcept { m_voices = std::clamp<size_t>(num_voices, 0, max_oscillators); }
 
-    void set_threshold(const T threshold) noexcept
+    void set_threshold(const T threshold) noexcept { m_threshold = threshold; }
+
+    void set_interval(const unsigned int interval) noexcept
     {
-        m_threshold = threshold;
+        m_transform_interval = interval;
+        if (m_act_interval > m_transform_interval)
+        {
+            m_act_interval = 0;
+        }
+    }
+
+    void set_cutoff(const T freq)
+    {
+        m_alpha = 1.0 - std::exp(-two_pi<double> * static_cast<double>(freq) / m_sampling_freq);
     }
 
     void clear_buffers() noexcept { m_ring_buffer.reset_buffers(); }
@@ -68,7 +83,8 @@ class BufferManager
             while (!m_initiate_fft && daw_chunk_write_index < t_size)
             {
                 m_ring_buffer.fill_input(daw_chunk[daw_chunk_write_index]);
-                daw_chunk[daw_chunk_write_index] = m_oscillators.receive_output();
+                m_previous_sample = (1.0 - m_alpha) * m_previous_sample + m_alpha * m_oscillators.receive_output();
+                daw_chunk[daw_chunk_write_index] = m_previous_sample;
                 // equicalent to m_initiate_fft.store(...);
                 m_initiate_fft = m_ring_buffer.advance();
                 ++daw_chunk_write_index;
@@ -76,13 +92,13 @@ class BufferManager
             if (m_initiate_fft && (m_act_interval == m_transform_interval))
             {
                 m_ring_buffer.copy_to_output();
-                m_fft_sync_cv.notify_one();
+                m_fft_sync_cv.notify_all();
                 m_act_interval = 0;
                 // set to false to be able to re-calculate the fft
                 m_initiate_fft.store(false);
             }
             /// @todo REWORK
-            else if (m_initiate_fft && m_act_interval != m_transform_interval)
+            else if (m_initiate_fft && (m_act_interval != m_transform_interval))
             {
                 ++m_act_interval;
             }
@@ -93,7 +109,8 @@ class BufferManager
             while (daw_chunk_write_index < t_size)
             {
                 m_ring_buffer.fill_input(daw_chunk[daw_chunk_write_index]);
-                daw_chunk[daw_chunk_write_index] = m_oscillators.receive_output();
+                m_previous_sample = (1.0 - m_alpha) * m_previous_sample + m_alpha * m_oscillators.receive_output();
+                daw_chunk[daw_chunk_write_index] = m_previous_sample;
                 m_ring_buffer.advance();
                 ++daw_chunk_write_index;
             }
@@ -105,6 +122,7 @@ class BufferManager
         m_sampling_freq = sampling_freq;
         m_ring_buffer.reset_buffers();
         m_oscillators.reset(sampling_freq);
+        m_alpha = 1.0;
     }
 
     void select_osc_waveform(const OscWaveform& osc_waveform) noexcept { m_oscillators.select_waveform(osc_waveform); }
@@ -159,9 +177,13 @@ class BufferManager
 
     // Skip every n_th transformation...
     /// @todo this MUST be reworked somehow.
-    const unsigned int m_transform_interval = 0;
+    unsigned int m_transform_interval = 0;
     unsigned int m_act_interval = 0;
     std::atomic_size_t m_voices = 4;
+
+    // LPF
+    double m_alpha = 1.0;
+    T m_previous_sample = 0;
 };
 
 } // namespace LBTS::Spectral

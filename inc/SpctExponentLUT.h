@@ -8,6 +8,7 @@
 
 #include "SpctDomainSpecific.h"
 #include <complex>
+#include <algorithm>
 
 namespace LBTS::Spectral
 {

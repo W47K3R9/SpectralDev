@@ -1,0 +1,9 @@
+[[language]]
+name = "cpp"
+language-servers = ["clangd"]
+comment-token = "//"
+indent = {tab-width = 4, unit = " "}
+
+[language-server.clangd]
+args = ["--compile-commands-dir=../bild", "--clang-tidy"]
+

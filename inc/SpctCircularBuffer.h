@@ -7,7 +7,6 @@
  */
 
 #pragma once
-#include <ranges>
 #include "SpctDomainSpecific.h"
 #include "SpctWavetables.h"
 
@@ -40,15 +39,15 @@ struct CircularSampleBuffer
         m_ringbuffer_index = 0;
     }
 
-    void reset_out_buffer() noexcept
-    {
-        m_out_array.fill(0);
-    }
+    void reset_out_buffer() noexcept { m_out_array.fill(0); }
 
     /// @brief shove one value in the current index position.
     /// In regular FFT it would make sense to window the input but a rectangular window sounds best in this scenario.
     // void fill_input(const T t_value) noexcept { m_in_array[m_ringbuffer_index] = t_value; }
-    void fill_input(const T t_value) noexcept { m_in_array[m_ringbuffer_index] = t_value * m_window[m_window_index]; }
+    void fill_input(const T t_value) noexcept
+    {
+        m_in_array[m_ringbuffer_index] = t_value * m_window[m_ringbuffer_index] * m_window_compensation;
+    }
 
     void copy_to_output() noexcept
     {
@@ -64,14 +63,12 @@ struct CircularSampleBuffer
     bool advance() noexcept
     {
         ++m_ringbuffer_index;
-        ++m_window_index;
         const bool do_transformation = m_ringbuffer_index == m_view_size;
         // mask with the flipped view size
         // m_ringbuffer_index & ~m_view_size
         // 01101   & ~(10000) = 01101 & 01111 = 01101
         // 10000   & ~(10000) = 10000 & 01111 = 00000
         m_ringbuffer_index &= ~MAX_BUFFER_SIZE;
-        m_window_index &= ~QUARTER_BUFFER_SIZE;
         return do_transformation;
     }
 
@@ -91,9 +88,9 @@ struct CircularSampleBuffer
     std::array<T, MAX_BUFFER_SIZE> m_in_array{0};
     ComplexArr<T, MAX_BUFFER_SIZE> m_out_array{0};
     // Hamming with no overlap sounds best.
-    size_t m_window_index{0};
-    // VonHannWindow<T, QUARTER_BUFFER_SIZE> m_window{};
-    HammingWindow<T, MAX_BUFFER_SIZE> m_window{};
+    VonHannWindow<T, MAX_BUFFER_SIZE> m_window{};
+    T m_window_compensation = static_cast<T>(1.2);
+    // HammingWindow<T, MAX_BUFFER_SIZE> m_window{};
     // const BartlettWindow<T, MAX_BUFFER_SIZE> m_window{};
 };
 

@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/Users/lucas/LBTSInstruments/SpectralDev/cmake-build-debug",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ -I/Users/lucas/LBTSInstruments/SpectralDev/inc   -O3 -g -std=gnu++2b -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk -fcolor-diagnostics -o CMakeFiles/spectral_main.dir/main.cpp.o -c /Users/lucas/LBTSInstruments/SpectralDev/main.cpp",
+  "file": "/Users/lucas/LBTSInstruments/SpectralDev/main.cpp",
+  "output": "CMakeFiles/spectral_main.dir/main.cpp.o"
+}
+]

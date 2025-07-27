@@ -132,9 +132,10 @@ class WTOscillator
         m_inv_sampling_freq = 1.0 / sampling_freq;
     }
 
-    /// @brief This will set the increment rate inside the wavetable.
+    /// @brief This will set the increment rate inside the wavetable as well as the oscillators amplitude.
     /// @param to_freq The oscillator will output it's waveform with this frequency (in Hz).
-    void tune(T to_freq) noexcept
+    /// @param amplitude value of the amplitude
+    void tune_and_set_amp(T to_freq, const T amplitude) noexcept
     {
         // m_index_increment_from.store(m_index_increment);
         // be sure not to tune above nyquist!
@@ -142,11 +143,8 @@ class WTOscillator
         // increment = N_WT * f0 / fs
         // steps from one sample to the next.
         m_index_increment = m_internal_size * to_freq * m_inv_sampling_freq;
+        m_amplitude.store(amplitude);
     }
-
-    /// @brief Set the amplitude of an oscillator
-    /// @param amplitude value of the amplitude
-    void set_amplitude(T amplitude) noexcept { m_amplitude.store(amplitude); }
 
     /// @brief Change the look up table.
     /// @param wt_ptr A pointer to the wanted lookup table.

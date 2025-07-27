@@ -8,6 +8,7 @@
 #pragma once
 #include "SpctOscillator.h"
 #include "SpctWavetables.h"
+#include <ranges>
 
 namespace LBTS::Spectral
 {
@@ -73,21 +74,6 @@ class ResynthOscs
     /// @brief Tune every oscillator to it's appropriate frequency.
     /// @param bin_mag_arr Array containing pairs of the frequency bin and it's asociated amplitude (needed for
     /// frequency calculation).
-    /// @param valid_entries How many oscillators should play (determined by the maximum available oscillators and the
-    /// amplitudes above a given threshold).
-    void tune_oscillators(const BinMagArr<T, (FFT_SIZE >> 1)>& bin_mag_arr, const size_t valid_entries) noexcept
-    {
-        // valid entries is guaranteed to be smaller then max_oscillators!
-        for (size_t active_osc = 0; active_osc < valid_entries; ++active_osc)
-        {
-            const T to_freq = bin_mag_arr[active_osc].first * m_freq_resolution;
-            m_osc_array[active_osc].tune(to_freq);
-        }
-    }
-
-    /// @brief Tune every oscillator to it's appropriate frequency.
-    /// @param bin_mag_arr Array containing pairs of the frequency bin and it's asociated amplitude (needed for
-    /// frequency calculation).
     /// @param num_voices How many oscillators shall be tuned, note that if this number is higher than the oscillator
     /// count managed by an ResynthOscs block, the higher numbers will be ignored.
     void tune_oscillators_to_fft(const BinMagArr<T, (FFT_SIZE >> 1)>& bin_mag_arr, const size_t num_voices) noexcept
@@ -105,15 +91,15 @@ class ResynthOscs
         std::ranges::for_each(active_entries,
                               [&nth_osc, this](const auto& entry)
                               {
-                                  set_amp_oscillator_n(nth_osc, entry.second * m_amp_correction);
-                                  tune_oscillator_n(nth_osc, entry.first * m_freq_resolution);
+                                  tune_and_set_amp_oscillator_n(
+                                      nth_osc, entry.first * m_freq_resolution, entry.second * m_amp_correction);
                                   nth_osc += 1;
                               });
         const auto silent_entries = std::views::counted(bin_mag_arr.begin() + num_active_oscs, num_silent_oscs);
         std::ranges::for_each(silent_entries,
                               [&nth_osc, this]([[maybe_unused]] const auto& entry)
                               {
-                                  set_amp_oscillator_n(nth_osc, 0);
+                                  tune_and_set_amp_oscillator_n(nth_osc, 0, 0);
                                   nth_osc += 1;
                               });
     }
@@ -123,7 +109,7 @@ class ResynthOscs
         // valid entries is guaranteed to be smaller then max_oscillators!
         for (auto& osc : m_osc_array)
         {
-            osc.set_amplitude(0);
+            osc.tune_and_set_amp(0, 0);
         }
     }
 
@@ -178,8 +164,10 @@ class ResynthOscs
     const T m_amp_correction = static_cast<T>(2) / FFT_SIZE;
     OscArray<T, WT_SIZE, NUM_OSCS> m_osc_array;
 
-private:
-    void tune_oscillator_n(const size_t nth_osc, const T freq) { m_osc_array[nth_osc].tune(freq); }
-    void set_amp_oscillator_n(const size_t nth_osc, const T amp) { m_osc_array[nth_osc].set_amplitude(amp); }
+  private:
+    void tune_and_set_amp_oscillator_n(const size_t nth_osc, const T freq, const T amp)
+    {
+        m_osc_array[nth_osc].tune_and_set_amp(freq, amp);
+    }
 };
 } // namespace LBTS::Spectral
