@@ -10,7 +10,6 @@
 #pragma once
 #include "SpctDomainSpecific.h"
 #include "SpctWavetables.h"
-
 #include <atomic>
 
 namespace LBTS::Spectral
@@ -125,11 +124,14 @@ class WTOscillator
     /// @param sampling_freq The wanted sampling frequency.
     void reset(const double sampling_freq) noexcept
     {
-        m_amplitude = 0.0;
-        m_table_index = 0.0f;
+        m_amplitude = 0;
+        m_table_index = 0;
         m_sampling_freq = sampling_freq;
         m_nyquist_freq = sampling_freq / 2.0;
         m_inv_sampling_freq = 1.0 / sampling_freq;
+        m_glide_fraction = {0, 0};
+        m_lower_limit = {0, 0};
+        m_upper_limit = {0, 0};
     }
 
     /// @brief This will set the increment rate inside the wavetable as well as the oscillators amplitude.
@@ -151,6 +153,7 @@ class WTOscillator
     void change_waveform(const WaveTable<T, WT_SIZE>* wt_ptr) { m_wt_ptr = wt_ptr; }
 
   private:
+    using FreqAmpPair = std::pair<std::atomic<T>, std::atomic<T>>;
     // float is precise enough for interpolation between indices
     float m_table_index = 0.0f;
     std::atomic<float> m_index_increment = 0.0f;
@@ -163,5 +166,12 @@ class WTOscillator
     double m_inv_sampling_freq = 1.0 / m_sampling_freq;
     const WaveTable<T, WT_SIZE>* m_wt_ptr = nullptr;
     static constexpr size_t m_internal_size = WT_SIZE - 1;
+
+    FreqAmpPair m_glide_fraction;
+    FreqAmpPair m_upper_limit;
+    FreqAmpPair m_lower_limit;
+    T m_last_freq;
+    T m_last_amp;
+
 };
 } // namespace LBTS::Spectral
