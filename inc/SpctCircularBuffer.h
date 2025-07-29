@@ -80,13 +80,13 @@ struct CircularSampleBuffer
     friend BufferManager<T, MAX_BUFFER_SIZE>;
 
   private:
-    // To do overlap and add and that kind of stuff.
     static constexpr size_t QUARTER_BUFFER_SIZE = MAX_BUFFER_SIZE >> 2;
     size_t m_ringbuffer_index{0};
     size_t m_view_size{QUARTER_BUFFER_SIZE};
-    // ComplexArr<T, MAX_BUFFER_SIZE> m_in_array{0};
+
     std::array<T, MAX_BUFFER_SIZE> m_in_array{0};
     ComplexArr<T, MAX_BUFFER_SIZE> m_out_array{0};
+    
     // Hamming with no overlap sounds best.
     VonHannWindow<T, MAX_BUFFER_SIZE> m_window{};
     T m_window_compensation = static_cast<T>(1.2);
