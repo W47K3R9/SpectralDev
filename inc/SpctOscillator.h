@@ -10,10 +10,22 @@
 #pragma once
 #include "SpctDomainSpecific.h"
 #include "SpctWavetables.h"
+#include <algorithm>
 #include <atomic>
+#include <cstdint>
+#include <limits>
+#include <utility>
 
 namespace LBTS::Spectral
 {
+
+enum IncAmpComparison : uint8_t
+{
+    BOTH_LESS_OR_EQ = 0,
+    AMP_GREATER,
+    FREQ_GREATER,
+    BOTH_GREATER
+};
 
 /// @brief A single wavetable oscillator.
 /// @tparam T The type of the wavetable entries.
@@ -31,7 +43,6 @@ class WTOscillator
     /// @param wt_ptr Pointer to a wavetable. If nullptr is given the Oscillator will only output zeros.
     WTOscillator(const double sampling_freq, const WaveTable<T, WT_SIZE>* wt_ptr)
         : m_sampling_freq{sampling_freq},
-          m_inv_sampling_freq{1.0 / sampling_freq},
           m_wt_ptr{wt_ptr}
     {
         m_wt_ptr->equalize_end_and_begin();
@@ -41,25 +52,39 @@ class WTOscillator
     WTOscillator& operator=(const WTOscillator&) = delete;
     /// @note Defaulted.
     WTOscillator(WTOscillator&& other) noexcept
-        : m_table_index(other.m_table_index),
-          m_sampling_freq(other.m_sampling_freq),
-          m_wt_ptr(other.m_wt_ptr)
+        : m_table_index{other.m_table_index},
+          m_index_increment{other.m_index_increment},
+          m_prev_index_increment{other.m_prev_index_increment},
+          m_amplitude{other.m_amplitude},
+          m_prev_amplitude{other.m_prev_amplitude},
+          m_glide_resolution{other.m_glide_resolution},
+          m_glide_fraction{other.m_glide_fraction},
+          m_upper_limit{other.m_upper_limit},
+          m_lower_limit{other.m_lower_limit},
+          m_sampling_freq{other.m_sampling_freq},
+          m_wt_ptr{other.m_wt_ptr}
     {
-        // m_index_increment_from.store(other.m_index_increment_from);
-        m_index_increment.store(other.m_index_increment);
-        m_amplitude.store(other.m_amplitude);
         other.m_wt_ptr = nullptr;
     };
 
     WTOscillator& operator=(WTOscillator&& other) noexcept
     {
         m_table_index = other.m_table_index;
-        // m_index_increment_from.store(other.m_index_increment_from);
-        m_index_increment.store(other.m_index_increment);
+        m_index_increment = other.m_index_increment;
+        m_prev_index_increment = other.m_prev_index_increment;
+        m_amplitude = other.m_amplitude;
+        m_prev_amplitude = other.m_prev_amplitude;
+        m_glide_resolution.store(other.m_glide_resolution);
+        m_glide_fraction.first.store(other.m_glide_fraction.first);
+        m_glide_fraction.second.store(other.m_glide_fraction.second);
+        m_upper_limit.first.store(other.m_upper_limit.first);
+        m_upper_limit.second.store(other.m_upper_limit.second);
+        m_lower_limit.first.store(other.m_lower_limit.first);
+        m_lower_limit.second.store(other.m_lower_limit.second);
+        m_sampling_freq = other.m_sampling_freq;
         m_sampling_freq = other.m_sampling_freq;
         m_nyquist_freq = m_sampling_freq / 2.0;
         m_inv_sampling_freq = 1.0 / m_sampling_freq;
-        m_amplitude.store(other.m_amplitude);
         m_wt_ptr = other.m_wt_ptr;
         other.m_wt_ptr = nullptr;
         return *this;
@@ -110,13 +135,17 @@ class WTOscillator
         const T value_a = (*m_wt_ptr)[current_index];
         const T value_b = (*m_wt_ptr)[next_index];
         // 4. get the fraction offset and interpolate the output value
-        const float fraction = m_table_index - static_cast<float>(current_index);
-        const T output = value_a + (fraction * (value_b - value_a));
+        const float value_fraction = m_table_index - static_cast<float>(current_index);
+        const T output = value_a + (value_fraction * (value_b - value_a));
         // 5. wrap if needed
         if ((m_table_index += m_index_increment) >= (m_internal_size))
         {
             m_table_index -= m_internal_size;
         }
+        // 6. update the phase and amplitude values in a gliding manner.
+        m_index_increment =
+            std::clamp<float>(m_index_increment += m_glide_fraction.first, m_lower_limit.first, m_upper_limit.first);
+        m_amplitude = std::clamp<T>(m_amplitude += m_glide_fraction.second, m_lower_limit.second, m_upper_limit.second);
         return output * m_amplitude;
     }
 
@@ -129,9 +158,9 @@ class WTOscillator
         m_sampling_freq = sampling_freq;
         m_nyquist_freq = sampling_freq / 2.0;
         m_inv_sampling_freq = 1.0 / sampling_freq;
-        m_glide_fraction = {0, 0};
-        m_lower_limit = {0, 0};
-        m_upper_limit = {0, 0};
+        m_lower_limit = std::make_pair(0, 0);
+        m_upper_limit = std::make_pair(0, 0);
+        m_glide_fraction = std::make_pair(0, 0);
     }
 
     /// @brief This will set the increment rate inside the wavetable as well as the oscillators amplitude.
@@ -139,39 +168,74 @@ class WTOscillator
     /// @param amplitude value of the amplitude
     void tune_and_set_amp(T to_freq, const T amplitude) noexcept
     {
-        // m_index_increment_from.store(m_index_increment);
-        // be sure not to tune above nyquist!
-        to_freq = std::clamp<T>(to_freq, 0, m_nyquist_freq);
+        // 1. calculate index increment.
+        // Be sure not to tune above nyquist!
         // increment = N_WT * f0 / fs
-        // steps from one sample to the next.
-        m_index_increment = m_internal_size * to_freq * m_inv_sampling_freq;
-        m_amplitude.store(amplitude);
+        to_freq = std::clamp<T>(to_freq, 0, m_nyquist_freq);
+        const float index_incr = m_internal_size * to_freq * m_inv_sampling_freq;
+
+        // 2. calculate resulting fraction.
+        const float index_incr_frac = (index_incr - m_prev_index_increment) * m_glide_resolution;
+        const T amp_frac = (amplitude - m_prev_amplitude) * m_glide_resolution;
+
+        // 3. determine if the frequency or amplitude increase / decrease and update limits.
+        const uint8_t enum_mask = (index_incr > m_prev_index_increment) << 1 | (amplitude > m_prev_amplitude);
+        switch (enum_mask)
+        {
+        case IncAmpComparison::BOTH_LESS_OR_EQ:
+            m_lower_limit = std::make_pair(index_incr, amplitude);
+            break;
+        case IncAmpComparison::AMP_GREATER:
+            m_lower_limit.first = index_incr;
+            m_upper_limit.second = amplitude;
+            break;
+        case IncAmpComparison::FREQ_GREATER:
+            m_upper_limit.first = index_incr;
+            m_lower_limit.second = amplitude;
+            break;
+        case IncAmpComparison::BOTH_GREATER:
+            m_upper_limit = std::make_pair(index_incr, amplitude);
+            break;
+        }
+        m_prev_index_increment = index_incr;
+        m_prev_amplitude = amplitude;
+
+        // 4. update the fraction.
+        m_glide_fraction = std::make_pair(index_incr_frac, amp_frac);
     }
 
     /// @brief Change the look up table.
     /// @param wt_ptr A pointer to the wanted lookup table.
     void change_waveform(const WaveTable<T, WT_SIZE>* wt_ptr) { m_wt_ptr = wt_ptr; }
 
+    void set_glide_steps(uint16_t glide_steps) noexcept
+    {
+        glide_steps = std::clamp<uint16_t>(glide_steps, 1, std::numeric_limits<uint16_t>::max());
+        m_glide_resolution = 1.0 / glide_steps;
+    }
+
   private:
-    using FreqAmpPair = std::pair<std::atomic<T>, std::atomic<T>>;
+    using IncrementAmpPair = std::pair<std::atomic<float>, std::atomic<T>>;
+
     // float is precise enough for interpolation between indices
-    float m_table_index = 0.0f;
-    std::atomic<float> m_index_increment = 0.0f;
+    float m_table_index = 0;
+    float m_index_increment = 0;
+    float m_prev_index_increment = 0;
 
     /// @todo this should be a configurable parameter!
-    std::atomic<T> m_amplitude = 0;
+    T m_amplitude = 0;
+    T m_prev_amplitude = 0;
+
+    // initial glide resolution is 0.01 which is 1 / 100 and equivalent to a glide using 100 samples.
+    std::atomic<T> m_glide_resolution = 0.01;
+    IncrementAmpPair m_glide_fraction = {0, 0};
+    IncrementAmpPair m_upper_limit = {0, 0};
+    IncrementAmpPair m_lower_limit = {0, 0};
 
     double m_sampling_freq = 44100.0;
     double m_nyquist_freq = m_sampling_freq / 2.0;
     double m_inv_sampling_freq = 1.0 / m_sampling_freq;
     const WaveTable<T, WT_SIZE>* m_wt_ptr = nullptr;
     static constexpr size_t m_internal_size = WT_SIZE - 1;
-
-    FreqAmpPair m_glide_fraction;
-    FreqAmpPair m_upper_limit;
-    FreqAmpPair m_lower_limit;
-    T m_last_freq;
-    T m_last_amp;
-
 };
 } // namespace LBTS::Spectral

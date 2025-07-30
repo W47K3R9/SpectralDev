@@ -9,6 +9,7 @@
 #include "SpctExponentLUT.h"
 #include "SpctOscillatorStack.h"
 #include "SpctProcessingFunctions.h"
+#include <cstdint>
 #include <future>
 
 /**
@@ -127,6 +128,7 @@ class BufferManager
 
     void select_osc_waveform(const OscWaveform& osc_waveform) noexcept { m_oscillators.select_waveform(osc_waveform); }
 
+    void set_glide_steps(uint16_t glide_steps) noexcept { m_oscillators.set_glide_steps(glide_steps); }
     /// @note this is only needed for testing purposes, could be deletet later on.
     [[nodiscard]] size_t ring_buffer_index() const noexcept { return m_ring_buffer.current_index(); }
 

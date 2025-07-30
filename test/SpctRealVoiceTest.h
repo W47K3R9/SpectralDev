@@ -1,13 +1,5 @@
 /**
  * Author: Lucas Scheidt
- * Date: 08.06.25
- *
- * Description:
- */
-
-#pragma once
-/**
- * Author: Lucas Scheidt
  * Date: 06.10.24
  *
  * Description:
