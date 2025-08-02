@@ -3,4 +3,6 @@ build
 cmake-build-debug
 venv
 __pycache__
+*.txt
+!CMakeLists.txt
 **.DS_STORE
