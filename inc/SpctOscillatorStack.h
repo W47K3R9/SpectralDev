@@ -153,6 +153,14 @@ class ResynthOscs
         }
     }
 
+    void set_glide_steps(uint16_t glide_steps) noexcept
+    {
+        for(auto& osc : m_osc_array)
+        {
+            osc.set_glide_steps(glide_steps);
+        }
+    }
+
   private:
     // generate wavetables
     const SineWT<T, WT_SIZE> m_sin_wt{};
