@@ -16,3 +16,10 @@ are templatized and therefore completely defined in their header.
 concurrently for a few groups of oscillators.
 - [ ] Implement MIDI listening for tempo to trigger the FFT calculation according to the current tempo
 
+## Bugs
+
+- [x] The Plugin can't be deleted without issueing an error to Logic. This might be because the thread is not stopped
+and destruction of the instance freezes and waits infinitely...
+Fix: Juce creates unique pointers out of all arguments in addParam() since I used a unique pointer too this resulted
+in undefined behaviour.
+

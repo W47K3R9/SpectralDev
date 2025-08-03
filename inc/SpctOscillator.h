@@ -12,8 +12,6 @@
 #include "SpctWavetables.h"
 #include <algorithm>
 #include <atomic>
-#include <cstdint>
-#include <limits>
 #include <utility>
 
 namespace LBTS::Spectral
@@ -179,8 +177,8 @@ class WTOscillator
         const T amp_frac = (amplitude - m_prev_amplitude) * m_glide_resolution;
 
         // 3. determine if the frequency or amplitude increase / decrease and update limits.
-        const uint8_t enum_mask = (index_incr > m_prev_index_increment) << 1 | (amplitude > m_prev_amplitude);
-        switch (enum_mask)
+        switch (const uint8_t enum_mask =
+                    static_cast<int>(index_incr > m_prev_index_increment) << 1 | (amplitude > m_prev_amplitude))
         {
         case IncAmpComparison::BOTH_LESS_OR_EQ:
             m_lower_limit = std::make_pair(index_incr, amplitude);
@@ -195,6 +193,8 @@ class WTOscillator
             break;
         case IncAmpComparison::BOTH_GREATER:
             m_upper_limit = std::make_pair(index_incr, amplitude);
+            break;
+        default:
             break;
         }
         m_prev_index_increment = index_incr;

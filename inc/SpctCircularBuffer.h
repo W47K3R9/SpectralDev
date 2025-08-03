@@ -9,6 +9,7 @@
 #pragma once
 #include "SpctDomainSpecific.h"
 #include "SpctWavetables.h"
+#include <ranges>
 
 namespace LBTS::Spectral
 {
@@ -46,16 +47,16 @@ struct CircularSampleBuffer
     // void fill_input(const T t_value) noexcept { m_in_array[m_ringbuffer_index] = t_value; }
     void fill_input(const T t_value) noexcept
     {
-        m_in_array[m_ringbuffer_index] = t_value * m_window[m_ringbuffer_index] * m_window_compensation;
+        m_in_array[m_ringbuffer_index] = t_value * m_window_compensation;
     }
 
     void copy_to_output() noexcept
     {
-        // auto windowed_in = std::views::iota(static_cast<size_t>(0), m_in_array.size()) |
-        //                    std::views::transform([this](size_t ndx) { return m_in_array[ndx] * m_window[ndx]; });
-        // std::ranges::copy(windowed_in, m_out_array.begin());
+        /// @todo use views::zip as soon as available in apple clang.
+        auto windowed_in = std::views::iota(static_cast<size_t>(0), m_in_array.size()) |
+                           std::views::transform([this](size_t ndx) { return m_in_array[ndx] * m_window[ndx]; });
+        std::ranges::copy(windowed_in, m_out_array.begin());
 
-        // for tryout-purposes just copying the in array would be the commented line beyond.
         std::ranges::copy(m_in_array, m_out_array.begin());
     }
 
@@ -63,7 +64,7 @@ struct CircularSampleBuffer
     bool advance() noexcept
     {
         ++m_ringbuffer_index;
-        const bool do_transformation = m_ringbuffer_index == m_view_size;
+        const bool do_transformation = m_ringbuffer_index == VIEW_SIZE;
         // mask with the flipped view size
         // m_ringbuffer_index & ~m_view_size
         // 01101   & ~(10000) = 01101 & 01111 = 01101
@@ -80,16 +81,15 @@ struct CircularSampleBuffer
     friend BufferManager<T, MAX_BUFFER_SIZE>;
 
   private:
-    static constexpr size_t QUARTER_BUFFER_SIZE = MAX_BUFFER_SIZE >> 2;
+    static constexpr size_t VIEW_SIZE = MAX_BUFFER_SIZE >> 1;
     size_t m_ringbuffer_index{0};
-    size_t m_view_size{QUARTER_BUFFER_SIZE};
 
     std::array<T, MAX_BUFFER_SIZE> m_in_array{0};
     ComplexArr<T, MAX_BUFFER_SIZE> m_out_array{0};
     
     // Hamming with no overlap sounds best.
-    VonHannWindow<T, MAX_BUFFER_SIZE> m_window{};
     T m_window_compensation = static_cast<T>(1.2);
+    VonHannWindow<T, MAX_BUFFER_SIZE> m_window{};
     // HammingWindow<T, MAX_BUFFER_SIZE> m_window{};
     // const BartlettWindow<T, MAX_BUFFER_SIZE> m_window{};
 };

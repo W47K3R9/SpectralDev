@@ -10,7 +10,8 @@
 #include "SpctOscillatorStack.h"
 #include "SpctProcessingFunctions.h"
 #include <cstdint>
-#include <future>
+#include <mutex>
+#include <thread>
 
 /**
  * DECLARATION
@@ -22,10 +23,10 @@ template <FloatingPt T, size_t BUFFER_SIZE = BoundedPowTwo_v<size_t, 1024>>
 class BufferManager
 {
   public:
-    BufferManager() { initiate_worker(); };
+    BufferManager() { start_worker(); };
     explicit BufferManager(const double sampling_freq) : m_sampling_freq{sampling_freq}, m_oscillators{sampling_freq}
     {
-        initiate_worker();
+        start_worker();
     }
     BufferManager(const BufferManager&) = delete;
     BufferManager& operator=(const BufferManager&) = delete;
@@ -33,16 +34,26 @@ class BufferManager
     BufferManager& operator=(BufferManager&&) = delete;
     ~BufferManager()
     {
-        stop();
+        stop_fft();
+    }
+
+    void stop_fft()
+    {
+        m_stop_worker.store(true);
+        m_fft_sync_cv.notify_all();
         if (m_worker.joinable())
         {
             m_worker.join();
         }
     }
-    void stop()
+
+    void restart_fft()
     {
-        m_stop_worker.store(true);
-        m_fft_sync_cv.notify_all();
+        if (!m_stop_worker)
+        {
+            stop_fft();
+        }
+        start_worker();
     }
 
     /// @brief Increase or decrease the amount of used oscillators.
@@ -83,10 +94,14 @@ class BufferManager
             // in case that chunk > internal size this while loop takes care of the complete filling porcess correctly
             while (!m_initiate_fft && daw_chunk_write_index < t_size)
             {
+                // since the daw chunk is passed as a pointer from JUCE and I don't want the overhead of transforming
+                // this to a std::array, I ignore the liners complaints that I am doing pointer arithmetic here.
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 m_ring_buffer.fill_input(daw_chunk[daw_chunk_write_index]);
                 m_previous_sample = (1.0 - m_alpha) * m_previous_sample + m_alpha * m_oscillators.receive_output();
                 daw_chunk[daw_chunk_write_index] = m_previous_sample;
-                // equicalent to m_initiate_fft.store(...);
+                // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                // equivalent to m_initiate_fft.store(...);
                 m_initiate_fft = m_ring_buffer.advance();
                 ++daw_chunk_write_index;
             }
@@ -109,9 +124,11 @@ class BufferManager
         {
             while (daw_chunk_write_index < t_size)
             {
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 m_ring_buffer.fill_input(daw_chunk[daw_chunk_write_index]);
                 m_previous_sample = (1.0 - m_alpha) * m_previous_sample + m_alpha * m_oscillators.receive_output();
                 daw_chunk[daw_chunk_write_index] = m_previous_sample;
+                // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 m_ring_buffer.advance();
                 ++daw_chunk_write_index;
             }
@@ -153,7 +170,7 @@ class BufferManager
         }
     }
 
-    void initiate_worker()
+    void start_worker()
     {
         m_initiate_fft.store(false);
         m_stop_worker.store(false);
