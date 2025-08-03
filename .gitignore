@@ -4,5 +4,7 @@ cmake-build-debug
 venv
 __pycache__
 *.txt
+!raw_sine_values.txt
+!real_voice.txt
 !CMakeLists.txt
 **.DS_STORE
