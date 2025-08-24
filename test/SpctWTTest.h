@@ -6,7 +6,9 @@
  */
 
 #pragma once
+#include "SpctOscillatorStack.h"
 #include "SpctWavetables.h"
+#include <cassert>
 
 namespace LBTS::Spectral
 {
