@@ -129,7 +129,7 @@ struct HammingWindow : public WaveTable<T, WT_SIZE>
 {
     HammingWindow()
         : WaveTable<T, WT_SIZE>([](const T value) -> T
-                                { return 0.54 - 0.46 * std::cos<T>(two_pi<T> * value / (WT_SIZE - 1)); },
+                                { return 0.54 - 0.46 * std::cos(two_pi<T> * value / (WT_SIZE - 1)); },
                                 FunctionType::WINDOWING)
     {}
 };
@@ -140,7 +140,7 @@ struct VonHannWindow : public WaveTable<T, WT_SIZE>
 {
     VonHannWindow()
         : WaveTable<T, WT_SIZE>([](const T value) -> T
-                                { return 0.5 * (1 - std::cos<T>(two_pi<T> * value / (WT_SIZE - 1))); },
+                                { return 0.5 * (1 - std::cos(two_pi<T> * value / (WT_SIZE - 1))); },
                                 FunctionType::WINDOWING)
     {}
 };
@@ -155,7 +155,7 @@ struct BartlettWindow : public WaveTable<T, WT_SIZE>
             const size_t one_less_than_wt_size = WT_SIZE - 1;
             const T fraction = static_cast<T>(2) / one_less_than_wt_size;
             const T inv_fraction = static_cast<T>(1) / fraction;
-            return fraction * (inv_fraction - std::abs<T>(value - inv_fraction));
+            return fraction * (inv_fraction - std::abs(value - inv_fraction));
         },
                                 FunctionType::WINDOWING)
     {}

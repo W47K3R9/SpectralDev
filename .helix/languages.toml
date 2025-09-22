@@ -1,6 +1,6 @@
 [language-server.clangd]
 command = "/opt/homebrew/opt/llvm/bin/clangd"
-args = ["--compile-commands-dir=../bild", "--clang-tidy"]
+args = ["--compile-commands-dir=../build", "--clang-tidy"]
 
 [[language]]
 name = "cpp"
