@@ -11,6 +11,8 @@
 #include "SpctProcessingFunctions.h"
 #include <cstdint>
 #include <mutex>
+#include <condition_variable>
+#include <cmath>
 #include <thread>
 
 /**
@@ -124,11 +126,11 @@ class BufferManager
         {
             while (daw_chunk_write_index < t_size)
             {
-                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                // NOLINTBEGIN (cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 m_ring_buffer.fill_input(daw_chunk[daw_chunk_write_index]);
                 m_previous_sample = (1.0 - m_alpha) * m_previous_sample + m_alpha * m_oscillators.receive_output();
                 daw_chunk[daw_chunk_write_index] = m_previous_sample;
-                // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                // NOLINTEND (cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 m_ring_buffer.advance();
                 ++daw_chunk_write_index;
             }

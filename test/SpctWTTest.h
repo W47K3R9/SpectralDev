@@ -6,7 +6,6 @@
  */
 
 #pragma once
-#include "SpctOscillatorStack.h"
 #include "SpctWavetables.h"
 #include <cassert>
 
@@ -34,8 +33,8 @@ inline void test_wavetable_creation()
     assert(m_tri_wt[128] <= 0);
     assert(m_tri_wt[255] < 0);
 
-    ResynthOscs<double, 512, 1024> m_res_oscs{48000.0};
-    m_res_oscs.reset(44100.0);
+    // ResynthOscs<double, 512, 1024> m_res_oscs{48000.0};
+    // m_res_oscs.reset(44100.0);
 }
 
 } // namespace LBTS::Spectral

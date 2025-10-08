@@ -8,6 +8,7 @@
 #pragma once
 #include "SpctOscillator.h"
 #include "SpctWavetables.h"
+#include <cmath>
 #include <ranges>
 
 namespace LBTS::Spectral

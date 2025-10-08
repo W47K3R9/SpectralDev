@@ -10,6 +10,7 @@
 #include "SpctDomainSpecific.h"
 #include "SpctWavetables.h"
 #include <ranges>
+#include <algorithm>
 
 namespace LBTS::Spectral
 {

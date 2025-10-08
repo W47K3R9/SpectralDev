@@ -10,6 +10,7 @@
 #pragma once
 #include "SpctDomainSpecific.h"
 #include "SpctWavetables.h"
+#include <cmath>
 #include <algorithm>
 #include <atomic>
 #include <utility>

@@ -9,6 +9,7 @@
 #pragma once
 #include <complex>
 #include <numbers>
+#include <cstdint>
 #include <bit>
 
 namespace LBTS::Spectral
@@ -64,7 +65,7 @@ template <typename T>
 concept FloatingPt = std::is_floating_point_v<T>;
 
 /// @brief Used to select the waveform for resynthesizing.
-enum class OscWaveform : std::uint8_t
+enum class OscWaveform : uint8_t
 {
     SINE,
     TRIANGLE,

@@ -12,12 +12,14 @@
 #pragma once
 
 #include "SpctDomainSpecific.h"
+#include <cmath>
+#include <cstdint>
 #include <functional>
 
 namespace LBTS::Spectral
 {
 
-enum class FunctionType : std::uint8_t
+enum class FunctionType : uint8_t
 {
     PERIODIC,
     WINDOWING
@@ -62,10 +64,7 @@ struct WaveTable
     auto cend() const noexcept { return m_wavetable.cend(); }
     /// @brief This is needed if the wrap-around of the wavetable index happens at the next-to-last index instead of the
     /// last.
-    void equalize_end_and_begin() const noexcept
-    {
-        m_wavetable[WT_SIZE - 1] = m_wavetable[0];
-    }
+    void equalize_end_and_begin() const noexcept { m_wavetable[WT_SIZE - 1] = m_wavetable[0]; }
 
   private:
     mutable std::array<T, WT_SIZE> m_wavetable{};
@@ -75,7 +74,7 @@ template <FloatingPt T, size_t WT_SIZE>
     requires(is_bounded_pow_two(WT_SIZE))
 struct SineWT : public WaveTable<T, WT_SIZE>
 {
-    SineWT() : WaveTable<T, WT_SIZE>([](const T value) -> T { return std::sin<T>(value); }) {}
+    SineWT() : WaveTable<T, WT_SIZE>([](const T value) -> T { return std::sin(value); }) {}
 };
 
 template <FloatingPt T, size_t WT_SIZE>
@@ -129,7 +128,7 @@ struct HammingWindow : public WaveTable<T, WT_SIZE>
 {
     HammingWindow()
         : WaveTable<T, WT_SIZE>([](const T value) -> T
-                                { return 0.54 - 0.46 * std::cos<T>(two_pi<T> * value / (WT_SIZE - 1)); },
+                                { return 0.54 - 0.46 * std::cos(two_pi<T> * value / (WT_SIZE - 1)); },
                                 FunctionType::WINDOWING)
     {}
 };
@@ -140,7 +139,7 @@ struct VonHannWindow : public WaveTable<T, WT_SIZE>
 {
     VonHannWindow()
         : WaveTable<T, WT_SIZE>([](const T value) -> T
-                                { return 0.5 * (1 - std::cos<T>(two_pi<T> * value / (WT_SIZE - 1))); },
+                                { return 0.5 * (1 - std::cos(two_pi<T> * value / (WT_SIZE - 1))); },
                                 FunctionType::WINDOWING)
     {}
 };
@@ -150,14 +149,15 @@ template <FloatingPt T, size_t WT_SIZE>
 struct BartlettWindow : public WaveTable<T, WT_SIZE>
 {
     BartlettWindow()
-        : WaveTable<T, WT_SIZE>([](const T value) -> T
-        {
-            const size_t one_less_than_wt_size = WT_SIZE - 1;
-            const T fraction = static_cast<T>(2) / one_less_than_wt_size;
-            const T inv_fraction = static_cast<T>(1) / fraction;
-            return fraction * (inv_fraction - std::abs<T>(value - inv_fraction));
-        },
-                                FunctionType::WINDOWING)
+        : WaveTable<T, WT_SIZE>(
+              [](const T value) -> T
+              {
+                  const size_t one_less_than_wt_size = WT_SIZE - 1;
+                  const T fraction = static_cast<T>(2) / one_less_than_wt_size;
+                  const T inv_fraction = static_cast<T>(1) / fraction;
+                  return fraction * (inv_fraction - std::abs(value - inv_fraction));
+              },
+              FunctionType::WINDOWING)
     {}
 };
 
