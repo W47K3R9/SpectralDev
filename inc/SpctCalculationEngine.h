@@ -68,6 +68,9 @@ class CalculationEngine
     {
         assert(m_calculation_sp_ptr != nullptr);
         assert(m_circular_sample_buffer_ptr != nullptr);
+        // Initiate first call of fft calculation by setting action_done to true. Will be reset by BufferManager
+        // afterwards.
+        m_calculation_sp_ptr->action_done = true;
         while (!m_stop_workers)
         {
             std::unique_lock lock{m_calculation_sp_ptr->signalling_mtx};
@@ -82,8 +85,10 @@ class CalculationEngine
                 spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(fft_samples, m_exponent_lut);
                 // calculate the dominant magnitudes, won't change the output array
                 calculate_max_map<T, BUFFER_SIZE>(fft_samples, m_bin_mag_arr, m_threshold);
+                // Note that the action_done flag is necessary because the BufferManager fills the windowed input
+                // samples into the circular output buffer. Without the flag a data race could occur during the calls of
+                // spct_fourier_transform or calculate_max_map.
                 m_calculation_sp_ptr->action_done = true;
-                // if continuous operation
                 if (continuous_tuning)
                 {
                     m_tuning_sp_ptr->signalling_cv.notify_one();
@@ -98,6 +103,7 @@ class CalculationEngine
     {
         assert(m_tuning_sp_ptr != nullptr);
         assert(m_resynth_oscs_ptr != nullptr);
+        /// @note Evaluate if there is a need for the action_done flag for the tuning.
         while (!m_stop_workers)
         {
             std::unique_lock lock{m_tuning_sp_ptr->signalling_mtx};
