@@ -11,15 +11,21 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O3")
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
 add_executable(${PROJECT_NAME} main.cpp
-        inc/SpctDomainSpecific.h
+        inc/SpctCalculationEngine.h
         inc/SpctProcessingFunctions.h
-        inc/SpctCircularBuffer.h
-        inc/SpctExponentLUT.h
         inc/SpctOscillator.h
+        inc/SpctDomainSpecific.h
+        inc/SpctOscillatorStack.h
+        inc/SpctBufferManager.h
+        inc/SpctCircularBuffer.h
+        inc/SpctInstanceController.h
         inc/SpctWavetables.h
+        inc/SpctFxParameters.h
+        inc/SpctExponentLUT.h
+        inc/SpctTriggerManager.h
+        src/SpctInstanceController.cpp
         test/SpctWTTest.h
         test/SpctBufferManagerTest.h
-        inc/SpctOscillatorStack.h
         test/VoiceSampleArray.h
         test/SpctRealVoiceTest.h)
 target_link_libraries(${PROJECT_NAME} PUBLIC cmpl_flags)

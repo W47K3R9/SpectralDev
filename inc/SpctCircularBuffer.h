@@ -9,16 +9,16 @@
 #pragma once
 #include "SpctDomainSpecific.h"
 #include "SpctWavetables.h"
-#include <ranges>
 #include <algorithm>
+#include <ranges>
 
 namespace LBTS::Spectral
 {
-/// Forward declaration of BufferManager to be able to use it as friend. Not thaaat beautiful but C++ forces you to
+/// Forward declaration of CalculationEngine to be able to use it as friend. Not thaaat beautiful but C++ forces you to
 /// do such things, so be it.
 template <FloatingPt T, size_t BUFFER_SIZE>
     requires(is_bounded_pow_two(BUFFER_SIZE))
-class BufferManager;
+class CalculationEngine;
 
 /// @brief This is a circular buffer from which two instances will be used.
 /// 1. as input to the FFT
@@ -46,10 +46,7 @@ struct CircularSampleBuffer
     /// @brief shove one value in the current index position.
     /// In regular FFT it would make sense to window the input but a rectangular window sounds best in this scenario.
     // void fill_input(const T t_value) noexcept { m_in_array[m_ringbuffer_index] = t_value; }
-    void fill_input(const T t_value) noexcept
-    {
-        m_in_array[m_ringbuffer_index] = t_value * m_window_compensation;
-    }
+    void fill_input(const T t_value) noexcept { m_in_array[m_ringbuffer_index] = t_value * m_window_compensation; }
 
     void copy_to_output() noexcept
     {
@@ -57,8 +54,8 @@ struct CircularSampleBuffer
         auto windowed_in = std::views::iota(static_cast<size_t>(0), m_in_array.size()) |
                            std::views::transform([this](size_t ndx) { return m_in_array[ndx] * m_window[ndx]; });
         std::ranges::copy(windowed_in, m_out_array.begin());
-
-        std::ranges::copy(m_in_array, m_out_array.begin());
+        // only for debugging purposes
+        /// std::ranges::copy(m_in_array, m_out_array.begin());
     }
 
     /// @brief advancing by one, this happens synchronousely for both buffers.
@@ -79,7 +76,7 @@ struct CircularSampleBuffer
     /// @note thought back and forth and came to the conclusion, that I preferred having a friend that knows what to
     /// do with the internal arrays than to allow reference getters for them (or make them public).
     /// That way access is limited and safety is increased. Only downside is the forward declaration...
-    friend BufferManager<T, MAX_BUFFER_SIZE>;
+    friend CalculationEngine<T, MAX_BUFFER_SIZE>;
 
   private:
     static constexpr size_t VIEW_SIZE = MAX_BUFFER_SIZE >> 1;
@@ -87,7 +84,7 @@ struct CircularSampleBuffer
 
     std::array<T, MAX_BUFFER_SIZE> m_in_array{0};
     ComplexArr<T, MAX_BUFFER_SIZE> m_out_array{0};
-    
+
     // Hamming with no overlap sounds best.
     T m_window_compensation = static_cast<T>(1.2);
     VonHannWindow<T, MAX_BUFFER_SIZE> m_window{};

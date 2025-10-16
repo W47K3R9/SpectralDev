@@ -150,13 +150,14 @@ class ResynthOscs
         }
         for (auto& osc : m_osc_array)
         {
-            osc.change_waveform(wt_ptr);
+            osc.select_waveform(wt_ptr);
         }
     }
 
     void set_glide_steps(uint16_t glide_steps) noexcept
     {
-        for(auto& osc : m_osc_array)
+        /// @todo limit glide steps!
+        for (auto& osc : m_osc_array)
         {
             osc.set_glide_steps(glide_steps);
         }

@@ -60,6 +60,14 @@ void update_params_for_current_step(PluginParameters& params)
 update_params_for_current_step(m_plugin_params);
 m_plugin_instance.update_parameters(m_plugin_params);
 // ...
-process_samples(audio_buffer);
+m_plugin_instance.process_samples(audio_buffer);
 ```
+
+## Concurrency
+
+In order to decouple the calculation of the spectral map from the actual processing of the output samples,
+the FFT calculation is triggered concurrently to the rest of the program.
+
+That has the consequence, that everything related to the tuning of the oscillators has to be protected and made thread
+safe.
 

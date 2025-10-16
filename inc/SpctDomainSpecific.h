@@ -7,10 +7,12 @@
  */
 
 #pragma once
-#include <complex>
-#include <numbers>
-#include <cstdint>
 #include <bit>
+#include <complex>
+#include <condition_variable>
+#include <cstdint>
+#include <mutex>
+#include <numbers>
 
 namespace LBTS::Spectral
 {
@@ -58,6 +60,16 @@ namespace LBTS::Spectral
  * - IndexValueArr: array of index value pairs
  * - ComplexArr: array containing complex numbers
  */
+
+/// @brief A class that manages synchronous operation between tasks. It is intended to be used to manage the proper
+/// calculation of the fourier map while guaranteeing that the buffer used to create the fft remains static during
+/// the calculation.
+struct SyncPrimitives
+{
+    std::condition_variable signalling_cv;
+    std::mutex signalling_mtx;
+    std::atomic_bool action_done;
+};
 
 /// @brief This concept enforces the use of floating point types (float, double, long double).
 /// @tparam T: Type to constrain.
