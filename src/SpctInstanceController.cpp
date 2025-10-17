@@ -33,6 +33,7 @@ void InstanceController::update_parameters(const FxParameters& params)
     m_calculation_engine.set_voices(params.voices);
     m_calculation_engine.set_threshold(params.fft_threshold);
     m_buff_man.set_cutoff(params.filter_cutoff);
+    m_buff_man.set_gain(params.gain);
     /// params.freeze
     /// params.frequency_offset
     /// params.gain

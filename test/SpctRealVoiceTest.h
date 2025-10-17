@@ -12,6 +12,7 @@
 #include "SpctInstanceController.h"
 #include "VoiceSampleArray.h"
 #include <array>
+#include <cstdint>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -22,7 +23,6 @@ inline void test_real_voice()
     constexpr auto BUFF_SIZE = BoundedPowTwo_v<size_t, 1024>;
     InstanceController fx_instance(44100.0);
     std::ofstream txt_file_with_raw_sine{"real_voice.txt"};
-
     std::ranges::for_each(VoiceExmp::sample_array,
                           [&](auto& element)
                           { txt_file_with_raw_sine << std::setprecision(16) << element << std::endl; });
@@ -32,7 +32,7 @@ inline void test_real_voice()
                                .filter_cutoff = 20000.0,
                                .fft_threshold = 0.01,
                                .frequency_offset = 0,
-                               .gain = 1.0,
+                               .gain = 2.0f,
                                .voices = 8,
                                .freeze = false};
     const auto now = std::chrono::system_clock::now();
@@ -41,8 +41,11 @@ inline void test_real_voice()
     const auto end = std::chrono::system_clock::now();
     std::cout << "Base case algorithm took " << std::chrono::duration_cast<std::chrono::microseconds>(end - now).count()
               << " µs." << std::endl;
-    // advance one iteration to get the first calculated output
-    fx_instance.process_daw_chunk(xl_array.data(), BUFF_SIZE);
+    // advance a couple of iterations since it's not deterministic when exactly the FFT will be triggered.
+    for (uint8_t repeat = 0; repeat < 5; ++repeat)
+    {
+        fx_instance.process_daw_chunk(xl_array.data(), BUFF_SIZE);
+    }
     std::ofstream txt_file_resynthesized{"resynthesized_voice.txt"};
     for (double index : xl_array)
     {

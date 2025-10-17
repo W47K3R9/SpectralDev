@@ -2,9 +2,9 @@
  * Author: Lucas Scheidt
  * Date: 01.06.25
  *
- * Description: This is the building block of the sound engine.
+ * Description: This is the building block of the sound engine. It contains a bunch of single oscillators that will
+ * build the output sound.
  */
-
 #pragma once
 #include "SpctOscillator.h"
 #include "SpctWavetables.h"

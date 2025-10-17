@@ -1,3 +1,12 @@
+/**
+ * Author: Lucas Scheidt
+ * Date: 13.10.25
+ *
+ * Description: The calculation engine manages the fft transformation. It stores a [frequency bin, amplitude] map that
+ * represents the spectral representation (without phase information) of the input signal. The oscillators get tuned
+ * according to that map. Since the calculation engine contains the spectral representation of the signal it will also
+ * be responsible for the tuning of the oscillators.
+ */
 #pragma once
 #include "SpctCircularBuffer.h"
 #include "SpctDomainSpecific.h"

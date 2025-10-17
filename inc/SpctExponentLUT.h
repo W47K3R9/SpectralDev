@@ -2,13 +2,13 @@
  * Author: Lucas Scheidt
  * Date: 03.12.24
  *
- * Description: Lookup Table for complex exp numbers in the unit circle. This is needed for the FFT.
+ * Description: Lookup table for complex exponent numbers in the unit circle. This is needed for the FFT.
  */
 #pragma once
 
 #include "SpctDomainSpecific.h"
-#include <complex>
 #include <algorithm>
+#include <complex>
 
 namespace LBTS::Spectral
 {

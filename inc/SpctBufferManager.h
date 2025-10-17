@@ -1,3 +1,11 @@
+/**
+ * Author: Lucas Scheidt
+ * Date: 13.10.25
+ *
+ * Description: The buffer manager is responsible to firstly get the input samples into the circular buffer in order for
+ * the calculation manager to transform its contents and secondly to replace the samples of the DAW input with the
+ * output of the resynthesizing oscillators.
+ */
 #pragma once
 #include "SpctCircularBuffer.h"
 #include "SpctDomainSpecific.h"
@@ -39,6 +47,8 @@ class BufferManager
         m_alpha = 1.0 - std::exp(-two_pi<double> * static_cast<double>(freq) / m_sampling_freq);
     }
 
+    void set_gain(const float gain) { m_gain = std::clamp<float>(gain, 0.0f, 2.0f); }
+
     void clear_buffers() noexcept
     {
         assert(m_circular_buffer_ptr != nullptr);
@@ -65,7 +75,7 @@ class BufferManager
             // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             m_circular_buffer_ptr->fill_input(daw_chunk[daw_chunk_write_index]);
             m_previous_sample = (1.0 - m_alpha) * m_previous_sample + m_alpha * m_resynth_oscs_ptr->receive_output();
-            daw_chunk[daw_chunk_write_index] = m_previous_sample;
+            daw_chunk[daw_chunk_write_index] = m_previous_sample * m_gain;
             // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             ++daw_chunk_write_index;
         };
@@ -124,6 +134,8 @@ class BufferManager
     // LPF
     double m_alpha = 1.0;
     T m_previous_sample = 0;
+    // gain (doesn't need double precision since it's only intended to attenuate the output)
+    float m_gain = 1;
 };
 
 } // namespace LBTS::Spectral

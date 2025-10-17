@@ -2,9 +2,8 @@
  * Author: Lucas Scheidt
  * Date: 28.12.24
  *
- * Description: Wavetables to choose from. The first implementation only creates raw wavetables without regard to
- * the frequency they will later be used.
- *
+ * Wavetables to choose from. The first implementation only creates raw wavetables without regard to the frequency they
+ * will later be used.
  * @todo avoid aliasing:
  * wavetables shall be created with a frequency-dependent number of overtones via fourier series calculation.
  */
