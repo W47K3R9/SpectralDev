@@ -9,7 +9,6 @@
 #pragma once
 #include <complex>
 #include <numbers>
-#include <cstdef>
 #include <bit>
 
 namespace LBTS::Spectral

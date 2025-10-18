@@ -1,10 +1,9 @@
-[language-server.clangd]
-command = "/opt/homebrew/opt/llvm/bin/clangd"
-args = ["--compile-commands-dir=../build", "--clang-tidy"]
-
 [[language]]
 name = "cpp"
 language-servers = ["clangd"]
 comment-token = "//"
 indent = {tab-width = 4, unit = " "}
 
+[language-server.clangd]
+command = "/opt/homebrew/opt/llvm/bin/clangd"
+args = ["--compile-commands-dir=../build", "--clang-tidy"]
