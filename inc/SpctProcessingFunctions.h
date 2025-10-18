@@ -8,10 +8,8 @@
 
 #pragma once
 #include "SpctDomainSpecific.h"
-#include <iostream>
 #include "SpctExponentLUT.h"
 #include <algorithm>
-#include <array>
 #include <complex>
 
 namespace LBTS::Spectral

@@ -1,6 +1,6 @@
 [language-server.clangd]
 command = "clangd"
-args = ["--compile-commands-dir=../build", "--query-driver=/usr/bin/c++,/usr/bin/g++,/usr/bin/gcc"]
+args = ["--compile-commands-dir=../build", "--clang-tidy", "--query-driver=/usr/bin/c++,/usr/bin/g++,/usr/bin/gcc"]
 
 [[language]]
 name = "cpp"
