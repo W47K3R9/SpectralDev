@@ -49,6 +49,8 @@ class BufferManager
 
     void set_gain(const float gain) { m_gain = std::clamp<float>(gain, 0.0f, 2.0f); }
 
+    void set_feedback(const float feedback) { m_feedback = std::clamp<float>(feedback, 0.0f, 1.0f); }
+
     void clear_buffers() noexcept
     {
         assert(m_circular_buffer_ptr != nullptr);
@@ -73,9 +75,11 @@ class BufferManager
         const auto fill_in_and_out_buffers = [this, &daw_chunk_write_index, &daw_chunk]()
         {
             // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-            m_circular_buffer_ptr->fill_input(daw_chunk[daw_chunk_write_index]);
-            m_previous_sample = (1.0 - m_alpha) * m_previous_sample + m_alpha * m_resynth_oscs_ptr->receive_output();
-            daw_chunk[daw_chunk_write_index] = m_previous_sample * m_gain;
+            m_circular_buffer_ptr->fill_input(daw_chunk[daw_chunk_write_index] + m_feedback * m_previous_sample);
+            m_previous_sample =
+                (1.0 - m_alpha) * m_previous_sample + m_alpha * m_resynth_oscs_ptr->receive_output() * m_gain;
+            // @todo refine feedback behaviour!
+            daw_chunk[daw_chunk_write_index] = m_previous_sample;
             // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             ++daw_chunk_write_index;
         };
@@ -111,7 +115,6 @@ class BufferManager
     void reset(const double sampling_freq) noexcept
     {
         m_sampling_freq = sampling_freq;
-        m_circular_buffer_ptr->reset_buffers();
         m_alpha = 1.0;
     }
 
@@ -135,7 +138,8 @@ class BufferManager
     double m_alpha = 1.0;
     T m_previous_sample = 0;
     // gain (doesn't need double precision since it's only intended to attenuate the output)
-    float m_gain = 1;
+    float m_gain = 1.0f;
+    float m_feedback = 0.0f;
 };
 
 } // namespace LBTS::Spectral

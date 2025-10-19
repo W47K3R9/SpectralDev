@@ -24,7 +24,7 @@ class InstanceController
     void update_parameters(const FxParameters& params);
     void process_daw_chunk(float* samples, size_t chunk_size);
     void prepare_to_play();
-    void reset();
+    void reset(double sampling_freq);
 
   private:
     double m_sampling_freq = 44100.0;

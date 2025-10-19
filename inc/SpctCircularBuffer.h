@@ -31,17 +31,13 @@ struct CircularSampleBuffer
 {
     using type = T;
 
-    // explicit CircularSampleBuffer(const size_t i_range) { resize_valid_range(i_range); }
-
     /// @brief as the name says, note that only values in the active valid range get cleared!
-    void reset_buffers() noexcept
+    void reset() noexcept
     {
         m_in_array.fill(0);
-        reset_out_buffer();
+        m_out_array.fill(0);
         m_ringbuffer_index = 0;
     }
-
-    void reset_out_buffer() noexcept { m_out_array.fill(0); }
 
     /// @brief shove one value in the current index position.
     /// In regular FFT it would make sense to window the input but a rectangular window sounds best in this scenario.

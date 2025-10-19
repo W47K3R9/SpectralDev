@@ -13,10 +13,11 @@ namespace LBTS::Spectral
 struct FxParameters
 {
     OscWaveform waveform_selection;
-    double filter_cutoff;
-    double fft_threshold;
-    double frequency_offset;
+    float filter_cutoff;
+    float fft_threshold;
+    float frequency_offset;
     float gain;
+    float feedback;
     uint16_t glide_steps;
     size_t voices;
     bool freeze;

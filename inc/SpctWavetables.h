@@ -90,7 +90,7 @@ template <FloatingPt T, size_t WT_SIZE>
     requires(is_bounded_pow_two(WT_SIZE))
 struct SawWT : public WaveTable<T, WT_SIZE>
 {
-    SawWT() : WaveTable<T, WT_SIZE>([](const T value) -> T { return -2 * std::numbers::inv_pi_v<T> * value + 1; }) {}
+    SawWT() : WaveTable<T, WT_SIZE>([](const T value) -> T { return std::numbers::inv_pi_v<T> * value - 1; }) {}
 };
 
 template <FloatingPt T, size_t WT_SIZE>

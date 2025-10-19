@@ -34,15 +34,23 @@ void InstanceController::update_parameters(const FxParameters& params)
     m_calculation_engine.set_threshold(params.fft_threshold);
     m_buff_man.set_cutoff(params.filter_cutoff);
     m_buff_man.set_gain(params.gain);
+    m_buff_man.set_feedback(params.feedback);
+    /// params.trigger
     /// params.freeze
     /// params.frequency_offset
-    /// params.gain
 }
 void InstanceController::process_daw_chunk(float* samples, size_t chunk_size)
 {
     m_buff_man.process_daw_chunk(samples, chunk_size);
 }
 void InstanceController::prepare_to_play() {}
-void InstanceController::reset() {}
+void InstanceController::reset(double sampling_freq)
+{
+    m_sampling_freq = sampling_freq;
+    m_circular_sample_buffer_ptr->reset();
+    m_resynth_oscs_ptr->reset(m_sampling_freq);
+    m_buff_man.reset(m_sampling_freq);
+    m_calculation_engine.reset();
+}
 
 } // namespace LBTS::Spectral

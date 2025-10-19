@@ -34,11 +34,10 @@ class CalculationEngine
         : m_resynth_oscs_ptr{std::move(resynth_osc_ptr)},
           m_circular_sample_buffer_ptr{std::move(circular_sample_buffer_ptr)},
           m_calculation_sp_ptr{std::move(calculation_sync_primitives)},
-          m_tuning_sp_ptr{std::move(tuning_sync_primitives)}
-    {
-        m_fft_worker = std::thread([this] { this->fft_calculation(); });
-        m_tuning_worker = std::thread([this] { this->oscillator_tuning(); });
-    }
+          m_tuning_sp_ptr{std::move(tuning_sync_primitives)},
+          m_fft_worker(std::thread([this] { this->fft_calculation(); })),
+          m_tuning_worker(std::thread([this] { this->oscillator_tuning(); }))
+    {}
     CalculationEngine(const CalculationEngine&) = delete;
     CalculationEngine(CalculationEngine&&) = delete;
     CalculationEngine& operator=(const CalculationEngine&) = delete;
@@ -69,6 +68,9 @@ class CalculationEngine
     /// @param num_voices: Must be between 0 and the maximum number of oscillators available.
     /// @return void
     void set_voices(const size_t num_voices) noexcept { m_voices = std::clamp<size_t>(num_voices, 0, max_oscillators); }
+
+    /// @todo is there something usefull to do here like maybe stopping the threads or so?
+    void reset() {}
 
   private:
     /// @brief function that manages the FFT calculation. Gets activated by the BufferManager everytime a buffer is
