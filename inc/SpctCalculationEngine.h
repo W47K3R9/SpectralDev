@@ -37,7 +37,9 @@ class CalculationEngine
           m_tuning_sp_ptr{std::move(tuning_sync_primitives)},
           m_fft_worker(std::thread([this] { this->fft_calculation(); })),
           m_tuning_worker(std::thread([this] { this->oscillator_tuning(); }))
-    {}
+    {
+        prepare_to_play();
+    }
     CalculationEngine(const CalculationEngine&) = delete;
     CalculationEngine(CalculationEngine&&) = delete;
     CalculationEngine& operator=(const CalculationEngine&) = delete;
@@ -69,8 +71,17 @@ class CalculationEngine
     /// @return void
     void set_voices(const size_t num_voices) noexcept { m_voices = std::clamp<size_t>(num_voices, 0, max_oscillators); }
 
-    /// @todo is there something usefull to do here like maybe stopping the threads or so?
-    void reset() {}
+    void prepare_to_play()
+    {
+        // Initiate first call of fft calculation by setting action_done to true. Will be reset by BufferManager
+        // afterwards.
+        m_calculation_sp_ptr->action_done = true;
+        m_tuning_sp_ptr->action_done = true;
+        {
+            std::lock_guard lock{m_bin_mag_array_mtx};
+            m_bin_mag_arr.fill({0, 0});
+        }
+    }
 
   private:
     /// @brief function that manages the FFT calculation. Gets activated by the BufferManager everytime a buffer is
@@ -79,9 +90,6 @@ class CalculationEngine
     {
         assert(m_calculation_sp_ptr != nullptr);
         assert(m_circular_sample_buffer_ptr != nullptr);
-        // Initiate first call of fft calculation by setting action_done to true. Will be reset by BufferManager
-        // afterwards.
-        m_calculation_sp_ptr->action_done = true;
         while (!m_stop_workers)
         {
             std::unique_lock lock{m_calculation_sp_ptr->signalling_mtx};
@@ -90,17 +98,19 @@ class CalculationEngine
             // omit trigger at shutdown.
             if (!m_stop_workers)
             {
-                std::lock_guard lock{m_safe_tuning_mtx};
                 auto& fft_samples = m_circular_sample_buffer_ptr->m_out_array;
                 // pass the whole array as reference to the FFT, will change the output array!
                 spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(fft_samples, m_exponent_lut);
                 // calculate the dominant magnitudes, won't change the output array
-                calculate_max_map<T, BUFFER_SIZE>(fft_samples, m_bin_mag_arr, m_threshold);
+                {
+                    std::lock_guard lock{m_bin_mag_array_mtx};
+                    calculate_max_map<T, BUFFER_SIZE>(fft_samples, m_bin_mag_arr, m_threshold);
+                }
                 // Note that the action_done flag is necessary because the BufferManager fills the windowed input
                 // samples into the circular output buffer. Without the flag a data race could occur during the calls of
                 // spct_fourier_transform or calculate_max_map.
                 m_calculation_sp_ptr->action_done = true;
-                if (continuous_tuning)
+                if (m_continuous_tuning)
                 {
                     m_tuning_sp_ptr->signalling_cv.notify_one();
                 }
@@ -122,7 +132,7 @@ class CalculationEngine
             // omit trigger at shutdown.
             if (!m_stop_workers)
             {
-                std::lock_guard lock{m_safe_tuning_mtx};
+                std::lock_guard lock{m_bin_mag_array_mtx};
                 m_resynth_oscs_ptr->tune_oscillators_to_fft(m_bin_mag_arr, m_voices);
             }
         }
@@ -133,6 +143,7 @@ class CalculationEngine
     std::atomic_size_t m_voices{4};
     // fft-related
     BinMagArr<T, (BUFFER_SIZE / 2)> m_bin_mag_arr;
+    std::mutex m_bin_mag_array_mtx;
     ExponentLUT<T> m_exponent_lut;
     std::shared_ptr<CircularSampleBuffer<T, BUFFER_SIZE>> m_circular_sample_buffer_ptr;
     std::atomic<T> m_threshold = min_gain_threshold<T>;
@@ -141,9 +152,8 @@ class CalculationEngine
     std::shared_ptr<SyncPrimitives> m_tuning_sp_ptr;
     std::thread m_fft_worker;
     std::thread m_tuning_worker;
-    std::mutex m_safe_tuning_mtx;
     std::atomic_bool m_stop_workers{false};
     // options
-    std::atomic_bool continuous_tuning{true};
+    std::atomic_bool m_continuous_tuning{true};
 };
 } // namespace LBTS::Spectral

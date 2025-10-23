@@ -32,7 +32,7 @@ struct CircularSampleBuffer
     using type = T;
 
     /// @brief as the name says, note that only values in the active valid range get cleared!
-    void reset() noexcept
+    void clear_arrays() noexcept
     {
         m_in_array.fill(0);
         m_out_array.fill(0);

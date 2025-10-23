@@ -115,7 +115,7 @@ class BufferManager
     void reset(const double sampling_freq) noexcept
     {
         m_sampling_freq = sampling_freq;
-        m_alpha = 1.0;
+        m_previous_sample = 0;
     }
 
     /// @note this is only needed for testing purposes, could be deletet later on.

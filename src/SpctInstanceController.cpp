@@ -39,18 +39,25 @@ void InstanceController::update_parameters(const FxParameters& params)
     /// params.freeze
     /// params.frequency_offset
 }
+
 void InstanceController::process_daw_chunk(float* samples, size_t chunk_size)
 {
     m_buff_man.process_daw_chunk(samples, chunk_size);
 }
-void InstanceController::prepare_to_play() {}
-void InstanceController::reset(double sampling_freq)
+
+void InstanceController::prepare_to_play(double sampling_freq)
 {
     m_sampling_freq = sampling_freq;
-    m_circular_sample_buffer_ptr->reset();
+    reset();
+    m_calculation_engine.prepare_to_play();
+}
+
+void InstanceController::reset()
+{
+    m_circular_sample_buffer_ptr->clear_arrays();
     m_resynth_oscs_ptr->reset(m_sampling_freq);
+    m_resynth_oscs_ptr->mute_oscillators();
     m_buff_man.reset(m_sampling_freq);
-    m_calculation_engine.reset();
 }
 
 } // namespace LBTS::Spectral

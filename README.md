@@ -15,7 +15,7 @@ are templatized and therefore completely defined in their header.
 - [x] Parallelize the Oscillators. In order to save a few resources, the output of the oscillators could be calculated
 concurrently for a few groups of oscillators. IGNORE -> performance killer
 - [ ] Implement MIDI listening for tempo to trigger the FFT calculation according to the current tempo
-- [ ] Rework Architecture
+- [x] Rework Architecture
  
 ## Bugs
 
@@ -70,4 +70,45 @@ the FFT calculation is triggered concurrently to the rest of the program.
 
 That has the consequence, that everything related to the tuning of the oscillators has to be protected and made thread
 safe.
+
+## Setup and function calls
+
+-> This needs to be evaluated and checked.
+
+1. Prepare to play: The DAW sends this signal right before transmitting the first buffers or on DAW config changes. 
+2. Process buffer: The DAW provides the plugin with an audio stream (a buffer filled with floats)
+  Further the update parameters block will be called sequentially in that function too.
+3. Release resources: Called when unloading the plugin. Since I manage everything via RAII nothing has to be done here.
+4. Reset: Can be overwritten and will stop any playback of ongoing sounds. Although the documentation says that this
+  function *may* be called by the host and LogicPro doesn't call it...
+
+All functions will (hopefully) only be called sequentially.
+
+According to a first research the actual call sequence is as follows:
+- prepareToPlay(maxBufferSize): called before Playback (according to some users depending on the DAW even several times 
+- processBuffer(samples, numSamples): repeatedly called during Playback numSamples doesn't have to be the same as
+  maxBufferSize.
+- releaseResources(): no default behaviour, could be called after playback or when unloading (or never?). The plugin
+  should be able to manage it's resources on destruction.
+
+For me that means that I will have to focus on prepare to play and process buffer.
+
+releaseResources can essentially be left empty because I release all resources during destructuion.
+
+**Concrete setup requirements**
+
+1. Prepare to play:
+- Reset all buffers!
+- Mute the oscillators!
+- Set action done flags to true to trigger the first playback
+
+2. Process buffer:
+- Update parameters
+- Will call the main processing loop that fills the calculation input buffer and the output buffer that the DAW
+receives.
+- Triggers calculation (and therefore checks for calculation sync primitives action done flag)
+
+That means setting the action_done flags of the sync primitives to true may at worst be called twice which has no
+negative side effects.
+
 
