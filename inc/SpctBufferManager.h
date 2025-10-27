@@ -71,7 +71,7 @@ class BufferManager
         size_t daw_chunk_write_index = 0;
         const auto fill_in_and_out_buffers = [this, &daw_chunk_write_index, &daw_chunk]()
         {
-            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            // NOLINTBEGIN(*-pointer-arithmetic)
             // Why does the audio stop in some cases and restart if m_feedback is not 0?
             m_circular_buffer_ptr->fill_input(daw_chunk[daw_chunk_write_index] + m_feedback * m_previous_sample);
             m_previous_sample =
@@ -80,7 +80,7 @@ class BufferManager
             /// @note ... or let it be because feedback in digital processes is essentally just delay, which would be
             /// dumb...
             daw_chunk[daw_chunk_write_index] = m_previous_sample;
-            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            // NOLINTEND(*-pointer-arithmetic)
             ++daw_chunk_write_index;
         };
 
