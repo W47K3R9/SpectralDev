@@ -31,7 +31,6 @@ struct CircularSampleBuffer
 {
     using type = T;
 
-    /// @brief as the name says, note that only values in the active valid range get cleared!
     void clear_arrays() noexcept
     {
         m_in_array.fill(0);
@@ -75,13 +74,12 @@ struct CircularSampleBuffer
     friend CalculationEngine<T, MAX_BUFFER_SIZE>;
 
   private:
-    static constexpr size_t VIEW_SIZE = MAX_BUFFER_SIZE >> 1;
+    static constexpr size_t VIEW_SIZE = MAX_BUFFER_SIZE / 2;
     size_t m_ringbuffer_index{0};
 
     std::array<T, MAX_BUFFER_SIZE> m_in_array{0};
     ComplexArr<T, MAX_BUFFER_SIZE> m_out_array{0};
 
-    // Hamming with no overlap sounds best.
     T m_window_compensation = static_cast<T>(1.2);
     VonHannWindow<T, MAX_BUFFER_SIZE> m_window{};
     // HammingWindow<T, MAX_BUFFER_SIZE> m_window{};

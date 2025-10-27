@@ -107,10 +107,9 @@ class ResynthOscs
 
     void mute_oscillators() noexcept
     {
-        // valid entries is guaranteed to be smaller then max_oscillators!
         for (auto& osc : m_osc_array)
         {
-            osc.tune_and_set_amp(0, 0);
+            osc.tune_and_set_amp(1, 0);
         }
     }
 

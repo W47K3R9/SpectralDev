@@ -79,6 +79,7 @@ class CalculationEngine
         m_tuning_sp_ptr->action_done = true;
         {
             std::lock_guard lock{m_bin_mag_array_mtx};
+            // could this cause issues due to the "int-ness" of the pure 0s?
             m_bin_mag_arr.fill({0, 0});
         }
     }

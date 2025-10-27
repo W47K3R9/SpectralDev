@@ -57,9 +57,6 @@ class BufferManager
         m_circular_buffer_ptr->reset_buffers();
     }
 
-    // move to inst. mang.
-    /// void mute_oscillators() noexcept { m_resynth_oscs_ptr.mute_oscillators(); }
-
     /// @brief main processing is done in here since Juce works with C-style arrays this takes in T* as first address
     /// of the array.
     void process_daw_chunk(T* daw_chunk, const size_t t_size)
@@ -75,10 +72,13 @@ class BufferManager
         const auto fill_in_and_out_buffers = [this, &daw_chunk_write_index, &daw_chunk]()
         {
             // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            // Why does the audio stop in some cases and restart if m_feedback is not 0?
             m_circular_buffer_ptr->fill_input(daw_chunk[daw_chunk_write_index] + m_feedback * m_previous_sample);
             m_previous_sample =
                 (1.0 - m_alpha) * m_previous_sample + m_alpha * m_resynth_oscs_ptr->receive_output() * m_gain;
-            // @todo refine feedback behaviour!
+            /// @todo refine feedback behaviour!
+            /// @note ... or let it be because feedback in digital processes is essentally just delay, which would be
+            /// dumb...
             daw_chunk[daw_chunk_write_index] = m_previous_sample;
             // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             ++daw_chunk_write_index;
@@ -95,8 +95,8 @@ class BufferManager
             if (m_initiate_fft && m_calculation_sp_ptr->action_done)
             {
                 m_calculation_sp_ptr->action_done = false;
-                m_calculation_sp_ptr->signalling_cv.notify_one();
                 m_circular_buffer_ptr->copy_to_output();
+                m_calculation_sp_ptr->signalling_cv.notify_one();
                 // set to false to be able to re-calculate the fft
                 m_initiate_fft = false;
             }
@@ -135,7 +135,7 @@ class BufferManager
     std::shared_ptr<SyncPrimitives> m_calculation_sp_ptr;
     bool m_initiate_fft = false;
     // LPF
-    double m_alpha = 1.0;
+    T m_alpha = 1;
     T m_previous_sample = 0;
     // gain (doesn't need double precision since it's only intended to attenuate the output)
     float m_gain = 1.0f;

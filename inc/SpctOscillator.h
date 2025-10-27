@@ -154,6 +154,8 @@ class WTOscillator
     {
         m_amplitude = 0;
         m_table_index = 0;
+        m_index_increment = 0;
+        m_prev_index_increment = 0;
         m_sampling_freq = sampling_freq;
         m_nyquist_freq = sampling_freq / 2.0;
         m_inv_sampling_freq = 1.0 / sampling_freq;
@@ -180,7 +182,7 @@ class WTOscillator
 
         // 3. determine if the frequency or amplitude increase / decrease and update limits.
         switch (const uint8_t enum_mask =
-                    static_cast<int>(index_incr > m_prev_index_increment) << 1 | (amplitude > m_prev_amplitude))
+                    static_cast<uint8_t>(index_incr > m_prev_index_increment) << 1 | (amplitude > m_prev_amplitude))
         {
         case IncAmpComparison::BOTH_LESS_OR_EQ:
             m_lower_limit = std::make_pair(index_incr, amplitude);

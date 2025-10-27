@@ -56,7 +56,6 @@ void InstanceController::reset()
 {
     m_circular_sample_buffer_ptr->clear_arrays();
     m_resynth_oscs_ptr->reset(m_sampling_freq);
-    m_resynth_oscs_ptr->mute_oscillators();
     m_buff_man.reset(m_sampling_freq);
 }
 
