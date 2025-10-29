@@ -107,14 +107,14 @@ class CalculationEngine
                     std::lock_guard lock{m_bin_mag_array_mtx};
                     calculate_max_map<T, BUFFER_SIZE>(fft_samples, m_bin_mag_arr, m_threshold);
                 }
+                if (m_continuous_tuning)
+                {
+                    m_tuning_sp_ptr->signalling_cv.notify_all();
+                }
                 // Note that the action_done flag is necessary because the BufferManager fills the windowed input
                 // samples into the circular output buffer. Without the flag a data race could occur during the calls of
                 // spct_fourier_transform or calculate_max_map.
                 m_calculation_sp_ptr->action_done = true;
-                if (m_continuous_tuning)
-                {
-                    m_tuning_sp_ptr->signalling_cv.notify_one();
-                }
             }
         }
     }
@@ -135,6 +135,7 @@ class CalculationEngine
             {
                 std::lock_guard lock{m_bin_mag_array_mtx};
                 m_resynth_oscs_ptr->tune_oscillators_to_fft(m_bin_mag_arr, m_voices);
+                m_tuning_sp_ptr->action_done = true;
             }
         }
     }
