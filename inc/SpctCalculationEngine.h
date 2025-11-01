@@ -97,6 +97,7 @@ class CalculationEngine
             // omit trigger at shutdown.
             if (!m_stop_workers)
             {
+                m_calculation_sp_ptr->action_done = false;
                 auto& fft_samples = m_circular_sample_buffer_ptr->m_out_array;
                 // pass the whole array as reference to the FFT, will change the output array!
                 spct_fourier_transform<T, degree_of_pow_two_value(BUFFER_SIZE)>(fft_samples, m_exponent_lut);

@@ -94,7 +94,6 @@ class BufferManager
             }
             if (m_initiate_fft && m_calculation_sp_ptr->action_done)
             {
-                m_calculation_sp_ptr->action_done = false;
                 m_circular_buffer_ptr->copy_to_output();
                 m_calculation_sp_ptr->signalling_cv.notify_all();
                 // set to false to be able to re-calculate the fft
