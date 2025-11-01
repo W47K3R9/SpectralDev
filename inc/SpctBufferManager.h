@@ -51,12 +51,6 @@ class BufferManager
 
     void set_feedback(const float feedback) { m_feedback = std::clamp<float>(feedback, 0.0f, 1.0f); }
 
-    void clear_buffers() noexcept
-    {
-        assert(m_circular_buffer_ptr != nullptr);
-        m_circular_buffer_ptr->reset_buffers();
-    }
-
     /// @brief main processing is done in here since Juce works with C-style arrays this takes in T* as first address
     /// of the array.
     void process_daw_chunk(T* daw_chunk, const size_t t_size)
@@ -95,7 +89,7 @@ class BufferManager
             if (m_initiate_fft && m_calculation_sp_ptr->action_done)
             {
                 m_circular_buffer_ptr->copy_to_output();
-                m_calculation_sp_ptr->signalling_cv.notify_all();
+                m_calculation_sp_ptr->signalling_cv.notify_one();
                 // set to false to be able to re-calculate the fft
                 m_initiate_fft = false;
             }

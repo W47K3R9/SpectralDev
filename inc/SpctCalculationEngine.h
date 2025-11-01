@@ -35,8 +35,9 @@ class CalculationEngine
           m_circular_sample_buffer_ptr{std::move(circular_sample_buffer_ptr)},
           m_calculation_sp_ptr{std::move(calculation_sync_primitives)},
           m_tuning_sp_ptr{std::move(tuning_sync_primitives)},
-          m_fft_worker(std::thread([this] { this->fft_calculation(); })),
-          m_tuning_worker(std::thread([this] { this->oscillator_tuning(); }))
+          m_stop_workers{false},
+          m_fft_worker{std::thread([this] { this->fft_calculation(); })},
+          m_tuning_worker{std::thread([this] { this->oscillator_tuning(); })}
     {}
     CalculationEngine(const CalculationEngine&) = delete;
     CalculationEngine(CalculationEngine&&) = delete;
@@ -46,8 +47,8 @@ class CalculationEngine
     {
         m_stop_workers = true;
         // cancel waiting on cv's
-        m_calculation_sp_ptr->signalling_cv.notify_all();
-        m_tuning_sp_ptr->signalling_cv.notify_all();
+        m_calculation_sp_ptr->signalling_cv.notify_one();
+        m_tuning_sp_ptr->signalling_cv.notify_one();
         if (m_fft_worker.joinable())
         {
             m_fft_worker.join();
@@ -74,7 +75,6 @@ class CalculationEngine
     void reset() noexcept
     {
         std::lock_guard lock{m_bin_mag_array_mtx};
-        // could this cause issues due to the "int-ness" of the pure 0s?
         m_bin_mag_arr.fill({0, 0});
     }
 
@@ -109,7 +109,7 @@ class CalculationEngine
                 // common_condition will be used: true -> continuous tuning, false -> triggered behaviour.
                 if (m_tuning_sp_ptr->common_ondition)
                 {
-                    m_tuning_sp_ptr->signalling_cv.notify_all();
+                    m_tuning_sp_ptr->signalling_cv.notify_one();
                 }
             }
         }
@@ -146,10 +146,10 @@ class CalculationEngine
     // synchronization and behavioral
     std::shared_ptr<SyncPrimitives> m_calculation_sp_ptr;
     std::shared_ptr<SyncPrimitives> m_tuning_sp_ptr;
+    std::atomic_bool m_stop_workers;
     std::thread m_fft_worker;
     std::thread m_tuning_worker;
-    std::atomic_bool m_stop_workers{false};
     // options
-    std::atomic_bool m_freeze{false};
+    std::atomic_bool m_freeze;
 };
 } // namespace LBTS::Spectral

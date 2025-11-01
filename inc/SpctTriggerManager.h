@@ -66,7 +66,7 @@ class TriggerManager
             // common_condition will be used: true -> continuous tuning, false -> triggered behaviour.
             if (!m_tuning_sp_ptr->common_ondition && !m_stop_workers)
             {
-                m_tuning_sp_ptr->signalling_cv.notify_all();
+                m_tuning_sp_ptr->signalling_cv.notify_one();
             }
         }
     }

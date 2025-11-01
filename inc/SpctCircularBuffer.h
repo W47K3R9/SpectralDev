@@ -33,8 +33,8 @@ struct CircularSampleBuffer
 
     void clear_arrays() noexcept
     {
-        m_in_array.fill(0);
-        m_out_array.fill(0);
+        m_in_array.fill(0.0);
+        m_out_array.fill(0.0);
         m_ringbuffer_index = 0;
     }
 

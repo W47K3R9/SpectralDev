@@ -34,13 +34,12 @@ void InstanceController::update_parameters(const FxParameters& params)
     m_resynth_oscs_ptr->set_glide_steps(params.glide_steps);
     m_calculation_engine.set_voices(params.voices);
     m_calculation_engine.set_threshold(params.fft_threshold);
+    m_calculation_engine.set_freeze(params.freeze);
     m_buff_man.set_cutoff(params.filter_cutoff);
     m_buff_man.set_gain(params.gain);
     m_buff_man.set_feedback(params.feedback); /// @note will be removed
     m_trigger_manager.set_trigger_interval(params.tune_interval_ms);
     m_trigger_manager.set_triggered_tuning_behaviour(params.continuous_tuning);
-    /// params.freeze
-    /// params.frequency_offset
 }
 
 void InstanceController::process_daw_chunk(float* samples, size_t chunk_size)
@@ -51,7 +50,7 @@ void InstanceController::process_daw_chunk(float* samples, size_t chunk_size)
 void InstanceController::prepare_to_play(double sampling_freq)
 {
     m_sampling_freq = sampling_freq;
-    reset();
+    m_circular_sample_buffer_ptr->clear_arrays();
 }
 
 void InstanceController::reset()
