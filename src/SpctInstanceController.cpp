@@ -14,7 +14,8 @@ InstanceController::InstanceController(double sampling_freq)
       m_circular_sample_buffer_ptr{std::make_shared<CircularSampleBuffer<float, BUFFER_SIZE>>()},
       m_resynth_oscs_ptr{std::make_shared<Oscs>(m_sampling_freq)},
       m_buff_man{m_sampling_freq, m_circular_sample_buffer_ptr, m_resynth_oscs_ptr, m_fft_sp_ptr},
-      m_calculation_engine{m_resynth_oscs_ptr, m_circular_sample_buffer_ptr, m_fft_sp_ptr, m_tuning_sp_ptr}
+      m_calculation_engine{m_resynth_oscs_ptr, m_circular_sample_buffer_ptr, m_fft_sp_ptr, m_tuning_sp_ptr},
+      m_trigger_manager{m_tuning_sp_ptr}
 {}
 
 InstanceController::InstanceController()
@@ -23,7 +24,8 @@ InstanceController::InstanceController()
       m_circular_sample_buffer_ptr{std::make_shared<CircularSampleBuffer<float, BUFFER_SIZE>>()},
       m_resynth_oscs_ptr{std::make_shared<Oscs>(m_sampling_freq)},
       m_buff_man{m_sampling_freq, m_circular_sample_buffer_ptr, m_resynth_oscs_ptr, m_fft_sp_ptr},
-      m_calculation_engine{m_resynth_oscs_ptr, m_circular_sample_buffer_ptr, m_fft_sp_ptr, m_tuning_sp_ptr}
+      m_calculation_engine{m_resynth_oscs_ptr, m_circular_sample_buffer_ptr, m_fft_sp_ptr, m_tuning_sp_ptr},
+      m_trigger_manager{m_tuning_sp_ptr}
 {}
 
 void InstanceController::update_parameters(const FxParameters& params)
@@ -34,8 +36,9 @@ void InstanceController::update_parameters(const FxParameters& params)
     m_calculation_engine.set_threshold(params.fft_threshold);
     m_buff_man.set_cutoff(params.filter_cutoff);
     m_buff_man.set_gain(params.gain);
-    m_buff_man.set_feedback(params.feedback);
-    /// params.trigger
+    m_buff_man.set_feedback(params.feedback); /// @note will be removed
+    m_trigger_manager.set_trigger_interval(params.tune_interval_ms);
+    m_trigger_manager.set_triggered_tuning_behaviour(params.continuous_tuning);
     /// params.freeze
     /// params.frequency_offset
 }
@@ -49,7 +52,6 @@ void InstanceController::prepare_to_play(double sampling_freq)
 {
     m_sampling_freq = sampling_freq;
     reset();
-    m_calculation_engine.prepare_to_play();
 }
 
 void InstanceController::reset()
@@ -57,6 +59,7 @@ void InstanceController::reset()
     m_circular_sample_buffer_ptr->clear_arrays();
     m_resynth_oscs_ptr->reset(m_sampling_freq);
     m_buff_man.reset(m_sampling_freq);
+    m_calculation_engine.reset();
 }
 
 } // namespace LBTS::Spectral

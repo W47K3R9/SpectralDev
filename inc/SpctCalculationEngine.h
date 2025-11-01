@@ -37,9 +37,7 @@ class CalculationEngine
           m_tuning_sp_ptr{std::move(tuning_sync_primitives)},
           m_fft_worker(std::thread([this] { this->fft_calculation(); })),
           m_tuning_worker(std::thread([this] { this->oscillator_tuning(); }))
-    {
-        prepare_to_play();
-    }
+    {}
     CalculationEngine(const CalculationEngine&) = delete;
     CalculationEngine(CalculationEngine&&) = delete;
     CalculationEngine& operator=(const CalculationEngine&) = delete;
@@ -63,25 +61,21 @@ class CalculationEngine
     /// @brief Sets detection threshold for the FFT. The amplitude of a frequency bin has to be at least as high as
     /// the...
     /// @param threshold: ... value provided here.
-    /// @return void
     void set_threshold(const T threshold) noexcept { m_threshold = threshold; }
 
     /// @brief Sets the number of oscillators (the voices) to participate in the sound resynthesization.
     /// @param num_voices: Must be between 0 and the maximum number of oscillators available.
-    /// @return void
     void set_voices(const size_t num_voices) noexcept { m_voices = std::clamp<size_t>(num_voices, 0, max_oscillators); }
 
-    void prepare_to_play()
+    /// @brief If frozen the oscillators keep playing the last settings indefinitely.
+    /// @param freeze: True freezes
+    void set_freeze(bool freeze) noexcept { m_freeze = freeze; }
+
+    void reset() noexcept
     {
-        // Initiate first call of fft calculation by setting action_done to true. Will be reset by BufferManager
-        // afterwards.
-        m_calculation_sp_ptr->action_done = true;
-        m_tuning_sp_ptr->action_done = true;
-        {
-            std::lock_guard lock{m_bin_mag_array_mtx};
-            // could this cause issues due to the "int-ness" of the pure 0s?
-            m_bin_mag_arr.fill({0, 0});
-        }
+        std::lock_guard lock{m_bin_mag_array_mtx};
+        // could this cause issues due to the "int-ness" of the pure 0s?
+        m_bin_mag_arr.fill({0, 0});
     }
 
   private:
@@ -93,6 +87,10 @@ class CalculationEngine
         assert(m_circular_sample_buffer_ptr != nullptr);
         while (!m_stop_workers)
         {
+            // Note that the action_done flag is necessary because the BufferManager fills the windowed input
+            // samples into the circular output buffer. Without the flag a data race could occur during the calls of
+            // spct_fourier_transform or calculate_max_map.
+            m_calculation_sp_ptr->action_done = true;
             std::unique_lock lock{m_calculation_sp_ptr->signalling_mtx};
             /// @todo consider adding a predicate.
             m_calculation_sp_ptr->signalling_cv.wait(lock);
@@ -107,14 +105,11 @@ class CalculationEngine
                     std::lock_guard lock{m_bin_mag_array_mtx};
                     calculate_max_map<T, BUFFER_SIZE>(fft_samples, m_bin_mag_arr, m_threshold);
                 }
-                if (m_continuous_tuning)
+                // common_condition will be used: true -> continuous tuning, false -> triggered behaviour.
+                if (m_tuning_sp_ptr->common_ondition)
                 {
                     m_tuning_sp_ptr->signalling_cv.notify_all();
                 }
-                // Note that the action_done flag is necessary because the BufferManager fills the windowed input
-                // samples into the circular output buffer. Without the flag a data race could occur during the calls of
-                // spct_fourier_transform or calculate_max_map.
-                m_calculation_sp_ptr->action_done = true;
             }
         }
     }
@@ -125,17 +120,15 @@ class CalculationEngine
     {
         assert(m_tuning_sp_ptr != nullptr);
         assert(m_resynth_oscs_ptr != nullptr);
-        /// @note Evaluate if there is a need for the action_done flag for the tuning.
         while (!m_stop_workers)
         {
             std::unique_lock lock{m_tuning_sp_ptr->signalling_mtx};
             m_tuning_sp_ptr->signalling_cv.wait(lock);
             // omit trigger at shutdown.
-            if (!m_stop_workers)
+            if (!m_stop_workers and !m_freeze)
             {
                 std::lock_guard lock{m_bin_mag_array_mtx};
                 m_resynth_oscs_ptr->tune_oscillators_to_fft(m_bin_mag_arr, m_voices);
-                m_tuning_sp_ptr->action_done = true;
             }
         }
     }
@@ -156,6 +149,6 @@ class CalculationEngine
     std::thread m_tuning_worker;
     std::atomic_bool m_stop_workers{false};
     // options
-    std::atomic_bool m_continuous_tuning{true};
+    std::atomic_bool m_freeze{false};
 };
 } // namespace LBTS::Spectral

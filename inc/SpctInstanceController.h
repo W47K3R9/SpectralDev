@@ -5,6 +5,7 @@
 #include "SpctDomainSpecific.h"
 #include "SpctFxParameters.h"
 #include "SpctOscillatorStack.h"
+#include "SpctTriggerManager.h"
 #include <cstddef>
 #include <memory>
 namespace LBTS::Spectral
@@ -52,6 +53,6 @@ class InstanceController
     std::shared_ptr<ResynthOscs<float, WAVETABLE_SIZE, BUFFER_SIZE>> m_resynth_oscs_ptr;
     BufferManager<float, BUFFER_SIZE> m_buff_man;
     CalculationEngine<float, BUFFER_SIZE> m_calculation_engine;
-    // TriggerManager
+    TriggerManager m_trigger_manager;
 };
 } // namespace LBTS::Spectral
