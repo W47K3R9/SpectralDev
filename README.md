@@ -23,8 +23,10 @@ concurrently for a few groups of oscillators. IGNORE -> performance killer
 and destruction of the instance freezes and waits infinitely...
 Fix: Juce creates unique pointers out of all arguments in addParam() since I used a unique pointer too this resulted
 in undefined behaviour.
-- [ ] The Plugin does not playback sound after moving it back and forth from and to FX slots. It just stays silent,
+- [x] The Plugin does not playback sound after moving it back and forth from and to FX slots. It just stays silent,
 at least unless you turn feedback up which is really strange! This needs some further investigation.
+Fix: Probably the call to notify_all() was to heavy and caused the plugin to miss its deadline, turning it partially
+off.
 
 ## Architecture
 
