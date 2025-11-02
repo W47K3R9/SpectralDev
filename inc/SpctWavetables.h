@@ -148,15 +148,14 @@ template <FloatingPt T, size_t WT_SIZE>
 struct BartlettWindow : public WaveTable<T, WT_SIZE>
 {
     BartlettWindow()
-        : WaveTable<T, WT_SIZE>(
-              [](const T value) -> T
-              {
-                  const size_t one_less_than_wt_size = WT_SIZE - 1;
-                  const T fraction = static_cast<T>(2) / one_less_than_wt_size;
-                  const T inv_fraction = static_cast<T>(1) / fraction;
-                  return fraction * (inv_fraction - std::abs(value - inv_fraction));
-              },
-              FunctionType::WINDOWING)
+        : WaveTable<T, WT_SIZE>([](const T value) -> T
+        {
+            const size_t one_less_than_wt_size = WT_SIZE - 1;
+            const T fraction = static_cast<T>(2) / one_less_than_wt_size;
+            const T inv_fraction = static_cast<T>(1) / fraction;
+            return fraction * (inv_fraction - std::abs(value - inv_fraction));
+        },
+                                FunctionType::WINDOWING)
     {}
 };
 

@@ -1,6 +1,10 @@
+# [language-server.clangd]
+# command = "clangd"
+# args = ["--compile-commands-dir=../build", "--clang-tidy", "--query-driver=/usr/bin/c++,/usr/bin/g++,/usr/bin/gcc"]
+
 [language-server.clangd]
-command = "clangd"
-args = ["--compile-commands-dir=../build", "--clang-tidy", "--query-driver=/usr/bin/c++,/usr/bin/g++,/usr/bin/gcc"]
+command = "/opt/homebrew/opt/llvm/bin/clangd"
+args = ["--compile-commands-dir=../build", "--clang-tidy"]
 
 [[language]]
 name = "cpp"
