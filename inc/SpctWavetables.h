@@ -2,9 +2,8 @@
  * Author: Lucas Scheidt
  * Date: 28.12.24
  *
- * Description: Wavetables to choose from. The first implementation only creates raw wavetables without regard to
- * the frequency they will later be used.
- *
+ * Wavetables to choose from. The first implementation only creates raw wavetables without regard to the frequency they
+ * will later be used.
  * @todo avoid aliasing:
  * wavetables shall be created with a frequency-dependent number of overtones via fourier series calculation.
  */
@@ -12,12 +11,14 @@
 #pragma once
 
 #include "SpctDomainSpecific.h"
+#include <cmath>
+#include <cstdint>
 #include <functional>
 
 namespace LBTS::Spectral
 {
 
-enum class FunctionType : std::uint8_t
+enum class FunctionType : uint8_t
 {
     PERIODIC,
     WINDOWING
@@ -62,10 +63,7 @@ struct WaveTable
     auto cend() const noexcept { return m_wavetable.cend(); }
     /// @brief This is needed if the wrap-around of the wavetable index happens at the next-to-last index instead of the
     /// last.
-    void equalize_end_and_begin() const noexcept
-    {
-        m_wavetable[WT_SIZE - 1] = m_wavetable[0];
-    }
+    void equalize_end_and_begin() const noexcept { m_wavetable[WT_SIZE - 1] = m_wavetable[0]; }
 
   private:
     mutable std::array<T, WT_SIZE> m_wavetable{};
@@ -75,7 +73,7 @@ template <FloatingPt T, size_t WT_SIZE>
     requires(is_bounded_pow_two(WT_SIZE))
 struct SineWT : public WaveTable<T, WT_SIZE>
 {
-    SineWT() : WaveTable<T, WT_SIZE>([](const T value) -> T { return std::sin<T>(value); }) {}
+    SineWT() : WaveTable<T, WT_SIZE>([](const T value) -> T { return std::sin(value); }) {}
 };
 
 template <FloatingPt T, size_t WT_SIZE>
@@ -92,7 +90,7 @@ template <FloatingPt T, size_t WT_SIZE>
     requires(is_bounded_pow_two(WT_SIZE))
 struct SawWT : public WaveTable<T, WT_SIZE>
 {
-    SawWT() : WaveTable<T, WT_SIZE>([](const T value) -> T { return -2 * std::numbers::inv_pi_v<T> * value + 1; }) {}
+    SawWT() : WaveTable<T, WT_SIZE>([](const T value) -> T { return std::numbers::inv_pi_v<T> * value - 1; }) {}
 };
 
 template <FloatingPt T, size_t WT_SIZE>

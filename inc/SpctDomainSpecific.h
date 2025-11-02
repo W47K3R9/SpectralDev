@@ -7,9 +7,12 @@
  */
 
 #pragma once
-#include <complex>
-#include <numbers>
 #include <bit>
+#include <complex>
+#include <condition_variable>
+#include <cstdint>
+#include <mutex>
+#include <numbers>
 
 namespace LBTS::Spectral
 {
@@ -58,13 +61,29 @@ namespace LBTS::Spectral
  * - ComplexArr: array containing complex numbers
  */
 
+/// @brief A class that manages synchronous operation between threads. It is intended to be used to manage the proper
+/// calculation of the fourier map while guaranteeing that the buffer used to create the fft remains static during
+/// the calculation. Further it is used for the tuning of the oscillators.
+struct SyncPrimitives
+{
+    /// @brief Used for signalling between threads.
+    std::condition_variable signalling_cv;
+    /// @brief Gets locked to wait on the condition variable.
+    std::mutex signalling_mtx;
+    /// @brief For producer consumer patterns this can be used to avoid mangling with shared objects.
+    std::atomic_bool action_done;
+    /// @brief Can be used for components that need to behave differently on a common condition. Like a shared switch,
+    /// this could be extended to a list of operations if the need arises.
+    std::atomic_bool common_ondition;
+};
+
 /// @brief This concept enforces the use of floating point types (float, double, long double).
 /// @tparam T: Type to constrain.
 template <typename T>
 concept FloatingPt = std::is_floating_point_v<T>;
 
 /// @brief Used to select the waveform for resynthesizing.
-enum class OscWaveform : std::uint8_t
+enum class OscWaveform : uint8_t
 {
     SINE,
     TRIANGLE,

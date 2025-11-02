@@ -2,12 +2,13 @@
  * Author: Lucas Scheidt
  * Date: 01.06.25
  *
- * Description: This is the building block of the sound engine.
+ * Description: This is the building block of the sound engine. It contains a bunch of single oscillators that will
+ * build the output sound.
  */
-
 #pragma once
 #include "SpctOscillator.h"
 #include "SpctWavetables.h"
+#include <cmath>
 #include <ranges>
 
 namespace LBTS::Spectral
@@ -106,10 +107,9 @@ class ResynthOscs
 
     void mute_oscillators() noexcept
     {
-        // valid entries is guaranteed to be smaller then max_oscillators!
         for (auto& osc : m_osc_array)
         {
-            osc.tune_and_set_amp(0, 0);
+            osc.tune_and_set_amp(1, 0);
         }
     }
 
@@ -149,13 +149,14 @@ class ResynthOscs
         }
         for (auto& osc : m_osc_array)
         {
-            osc.change_waveform(wt_ptr);
+            osc.select_waveform(wt_ptr);
         }
     }
 
     void set_glide_steps(uint16_t glide_steps) noexcept
     {
-        for(auto& osc : m_osc_array)
+        /// @todo limit glide steps!
+        for (auto& osc : m_osc_array)
         {
             osc.set_glide_steps(glide_steps);
         }

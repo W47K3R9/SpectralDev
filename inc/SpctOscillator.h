@@ -12,6 +12,7 @@
 #include "SpctWavetables.h"
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <utility>
 
 namespace LBTS::Spectral
@@ -153,6 +154,8 @@ class WTOscillator
     {
         m_amplitude = 0;
         m_table_index = 0;
+        m_index_increment = 0;
+        m_prev_index_increment = 0;
         m_sampling_freq = sampling_freq;
         m_nyquist_freq = sampling_freq / 2.0;
         m_inv_sampling_freq = 1.0 / sampling_freq;
@@ -162,6 +165,7 @@ class WTOscillator
     }
 
     /// @brief This will set the increment rate inside the wavetable as well as the oscillators amplitude.
+    /// The function will be called concurrently!
     /// @param to_freq The oscillator will output it's waveform with this frequency (in Hz).
     /// @param amplitude value of the amplitude
     void tune_and_set_amp(T to_freq, const T amplitude) noexcept
@@ -178,7 +182,7 @@ class WTOscillator
 
         // 3. determine if the frequency or amplitude increase / decrease and update limits.
         switch (const uint8_t enum_mask =
-                    static_cast<int>(index_incr > m_prev_index_increment) << 1 | (amplitude > m_prev_amplitude))
+                    static_cast<uint8_t>(index_incr > m_prev_index_increment) << 1 | (amplitude > m_prev_amplitude))
         {
         case IncAmpComparison::BOTH_LESS_OR_EQ:
             m_lower_limit = std::make_pair(index_incr, amplitude);
@@ -206,8 +210,12 @@ class WTOscillator
 
     /// @brief Change the look up table.
     /// @param wt_ptr A pointer to the wanted lookup table.
-    void change_waveform(const WaveTable<T, WT_SIZE>* wt_ptr) { m_wt_ptr = wt_ptr; }
+    /// since this will always be called in the parameter setup phase of the plugin the advance function will always
+    /// dereference a valid pointer. If this call was about to occur concurrently this function must be made thread
+    /// safe!
+    void select_waveform(const WaveTable<T, WT_SIZE>* wt_ptr) { m_wt_ptr = wt_ptr; }
 
+    /// @brief Set the transition duration from one frequency step to the next.
     void set_glide_steps(uint16_t glide_steps) noexcept
     {
         glide_steps = std::clamp<uint16_t>(glide_steps, 1, std::numeric_limits<uint16_t>::max());

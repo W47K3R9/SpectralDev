@@ -1,9 +1,15 @@
-[[language]]
-name = "cpp"
-language-servers = ["clangd"]
-comment-token = "//"
-indent = {tab-width = 4, unit = " "}
+# [language-server.clangd]
+# command = "clangd"
+# args = ["--compile-commands-dir=../build", "--clang-tidy", "--query-driver=/usr/bin/c++,/usr/bin/g++,/usr/bin/gcc"]
 
 [language-server.clangd]
 command = "/opt/homebrew/opt/llvm/bin/clangd"
 args = ["--compile-commands-dir=../build", "--clang-tidy"]
+
+[[language]]
+name = "cpp"
+language-servers = ["clangd"]
+comment-token = "///"
+indent = {tab-width = 4, unit = " "}
+auto-format = true
+
