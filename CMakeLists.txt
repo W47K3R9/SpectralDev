@@ -10,14 +10,13 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
-add_library(LBTS_SpctInstanceController STATIC
-    src/SpctInstanceController.cpp
+add_library(LBTS_SpctInstanceController INTERFACE
     inc/SpctInstanceController.h 
 )
 
-target_include_directories(LBTS_SpctInstanceController  PUBLIC inc)
-target_link_libraries(LBTS_SpctInstanceController PUBLIC cmpl_flags)
-target_compile_options(LBTS_SpctInstanceController PUBLIC -O3)
+target_include_directories(LBTS_SpctInstanceController  INTERFACE inc)
+target_link_libraries(LBTS_SpctInstanceController INTERFACE cmpl_flags)
+target_compile_options(LBTS_SpctInstanceController INTERFACE -O3)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O3")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")

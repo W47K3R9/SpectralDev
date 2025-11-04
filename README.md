@@ -16,6 +16,7 @@ are templatized and therefore completely defined in their header.
 concurrently for a few groups of oscillators. IGNORE -> performance killer
 - [ ] Implement MIDI listening for tempo to trigger the FFT calculation according to the current tempo
 - [x] Rework Architecture
+- [ ] Templatize the Instance Controller for data type of the samples.
  
 ## Bugs
 
@@ -28,44 +29,9 @@ at least unless you turn feedback up which is really strange! This needs some fu
 Fix: Probably the call to notify_all() was to heavy and caused the plugin to miss its deadline, turning it partially
 off.
 
-## Architecture
+## Considerations
 
-DAW -> sample buffers -> buffer manager -> FFT -> Map -> Oscillators -> gain -> sample buffers -> DAW
-
-
-The Plugin Parameters could be implemented as a struct that is passed to a central component.
-A function within Juce could than be called to update the parameters on each buffer reception.
-
-```cpp
-// function in Juce
-PluginParameters make_params_for_current_step()
-{
-  //...
-}
-
-// in main processing call
-const auto params = make_params_for_current_step();
-update_parameters(params);
-// ...
-process_samples(audio_buffer);
-```
-
-Alternatively PluginParameters could be an internal object in the Juce Framework.
-
-```cpp
-// function in Juce
-// could be boolean if something can go wrong
-void update_params_for_current_step(PluginParameters& params) 
-{
-  //...
-}
-
-// in main processing call
-update_params_for_current_step(m_plugin_params);
-m_plugin_instance.update_parameters(m_plugin_params);
-// ...
-m_plugin_instance.process_samples(audio_buffer);
-```
+- Maybe it's a good idea to make the channel management (mono or stereo) a part of the Plugin itself.
 
 ## Concurrency
 

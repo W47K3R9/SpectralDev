@@ -16,7 +16,8 @@
 using namespace LBTS::Spectral;
 inline void test_buffer_manager()
 {
-    InstanceController fx_instance(44100.0);
+    using SelecedType = double;
+    InstanceController<SelecedType> fx_instance(44100.0);
     auto params = FxParameters{.waveform_selection = OscWaveform::SINE,
                                .filter_cutoff = 20000.0,
                                .fft_threshold = 0.01,
@@ -36,7 +37,7 @@ inline void test_buffer_manager()
 
     /// BufferManager<double> xl_buffer;
     std::ofstream txt_file_with_raw_sine{"raw_sine_values.txt"};
-    std::array<float, BUFFER_SIZE_REGULAR> xl_array{};
+    std::array<SelecedType, BUFFER_SIZE_REGULAR> xl_array{};
     for (size_t ndx = 0; ndx < BUFFER_SIZE_REGULAR; ++ndx)
     {
         auto result = 0.4 * std::sin(6 * 2 * M_PI * static_cast<double>(ndx) / BUFFER_SIZE_REGULAR) +
