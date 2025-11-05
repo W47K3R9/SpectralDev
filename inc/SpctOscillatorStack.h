@@ -6,6 +6,7 @@
  * build the output sound.
  */
 #pragma once
+#include "SpctDomainSpecific.h"
 #include "SpctOscillator.h"
 #include "SpctWavetables.h"
 #include <cmath>
@@ -16,16 +17,16 @@ namespace LBTS::Spectral
 /// @brief Type definition for an array of wavetable oscillators.
 /// @tparam T The type of the wavetable entries.
 /// @tparam WT_SIZE The size of the wavetable that will be read.
-template <FloatingPt T, size_t WT_SIZE, size_t NUM_OSCS = max_oscillators>
-    requires(is_bounded_pow_two(WT_SIZE) && NUM_OSCS <= max_oscillators)
-using OscArray = std::array<WTOscillator<T, WT_SIZE>, NUM_OSCS>;
+template <FloatingPt T, size_t WAVETABLE_SIZE, size_t NUM_OSCS = MAX_VOICES>
+    requires(is_bounded_pow_two(WAVETABLE_SIZE) && NUM_OSCS <= MAX_VOICES)
+using OscArray = std::array<WTOscillator<T, WAVETABLE_SIZE>, NUM_OSCS>;
 
 /// @brief Object containing all oscillators that will resynthesize the FFT transformed input.
 /// @tparam T The type of the wavetable entries.
 /// @tparam WT_SIZE The size of the wavetable that will be read.
 /// @tparam FFT_SIZE Samples used for the fourier transformation.
-template <FloatingPt T, size_t WT_SIZE, size_t FFT_SIZE, size_t NUM_OSCS = max_oscillators>
-    requires(is_bounded_pow_two(WT_SIZE))
+template <FloatingPt T, size_t WAVETABLE_SIZE, size_t FFT_SIZE, size_t NUM_OSCS = MAX_VOICES>
+    requires(is_bounded_pow_two(WAVETABLE_SIZE) && is_bounded_pow_two(FFT_SIZE))
 class ResynthOscs
 {
   public:
@@ -40,7 +41,7 @@ class ResynthOscs
     {
         for (auto& osc : m_osc_array)
         {
-            osc = WTOscillator<T, WT_SIZE>{sampling_freq, &m_sin_wt};
+            osc = WTOscillator<T, WAVETABLE_SIZE>{sampling_freq, &m_sin_wt};
         }
     }
 
@@ -77,7 +78,7 @@ class ResynthOscs
     /// frequency calculation).
     /// @param num_voices How many oscillators shall be tuned, note that if this number is higher than the oscillator
     /// count managed by an ResynthOscs block, the higher numbers will be ignored.
-    void tune_oscillators_to_fft(const BinMagArr<T, (FFT_SIZE >> 1)>& bin_mag_arr, const size_t num_voices) noexcept
+    void tune_oscillators_to_fft(const BinMagArr<T, (FFT_SIZE / 2)>& bin_mag_arr, const size_t num_voices) noexcept
     {
         // e.g. num_voices = 4, NUM_OSCS = 8:
         // -> active_oscs = quiet_oscs = 4
@@ -131,7 +132,7 @@ class ResynthOscs
     void select_waveform(const OscWaveform& osc_waveform) noexcept
     {
 
-        const WaveTable<T, WT_SIZE>* wt_ptr = nullptr;
+        const WaveTable<T, WAVETABLE_SIZE>* wt_ptr = nullptr;
         switch (osc_waveform)
         {
         case OscWaveform::SINE:
@@ -163,20 +164,19 @@ class ResynthOscs
     }
 
   private:
-    // generate wavetables
-    const SineWT<T, WT_SIZE> m_sin_wt{};
-    const SquareWT<T, WT_SIZE> m_square_wt{};
-    const TriWT<T, WT_SIZE> m_tri_wt{};
-    const SawWT<T, WT_SIZE> m_saw_wt{};
-    double m_sampling_freq;
-    double m_freq_resolution;
-    const T m_amp_correction = static_cast<T>(2) / FFT_SIZE;
-    OscArray<T, WT_SIZE, NUM_OSCS> m_osc_array;
-
-  private:
     void tune_and_set_amp_oscillator_n(const size_t nth_osc, const T freq, const T amp)
     {
         m_osc_array[nth_osc].tune_and_set_amp(freq, amp);
     }
+
+    // generate wavetables
+    const SineWT<T, WAVETABLE_SIZE> m_sin_wt{};
+    const SquareWT<T, WAVETABLE_SIZE> m_square_wt{};
+    const TriWT<T, WAVETABLE_SIZE> m_tri_wt{};
+    const SawWT<T, WAVETABLE_SIZE> m_saw_wt{};
+    double m_sampling_freq;
+    double m_freq_resolution;
+    const T m_amp_correction = static_cast<T>(2) / FFT_SIZE;
+    OscArray<T, WAVETABLE_SIZE, NUM_OSCS> m_osc_array;
 };
 } // namespace LBTS::Spectral

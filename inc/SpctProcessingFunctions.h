@@ -18,12 +18,12 @@ namespace LBTS::Spectral
 /// @note DEG_TWO could be made uint8_t, but than pow_two_value_of_degree would have to be explicitely templated to
 /// size_t (pow_two_value_of_degree<size_t>(uint8_t DEG_TWO) and since I'm lazy and on a computer we don't need to
 /// be that greedy it's simply a size_t :)
-template <FloatingPt T, size_t DEG_TWO = BoundedDegTwo<size_t, 10>::degree>
+template <FloatingPt T, size_t DEG_TWO = BoundedDegTwo<size_t, 10>::DEGREE>
     requires(is_bounded_degree(DEG_TWO))
 void spct_fourier_transform(ComplexArr<T, pow_two_value_of_degree(DEG_TWO)>& samples_arr,
                             ExponentLUT<T>& exponent_lut) noexcept
 {
-    constexpr auto num_samples = pow_two_value_of_degree(DEG_TWO);
+    constexpr auto NUM_SAMPLES = pow_two_value_of_degree(DEG_TWO);
     // first swap indices in bit-reversal manner
     // Algorithm:
     // for ( j = 0; j < n; ++j )
@@ -34,7 +34,7 @@ void spct_fourier_transform(ComplexArr<T, pow_two_value_of_degree(DEG_TWO)>& sam
     //      q = q div 2; -> doable via shift operator >>
     //      r = 2r + bk; -> doable via shift operator << and logical or
     //   if j < r then swap(xj, xr);
-    for (size_t array_index = 0; array_index < num_samples; ++array_index)
+    for (size_t array_index = 0; array_index < NUM_SAMPLES; ++array_index)
     {
         size_t comparison = 0;
         for (size_t degree_index = 0; degree_index < DEG_TWO; ++degree_index)
@@ -59,10 +59,10 @@ void spct_fourier_transform(ComplexArr<T, pow_two_value_of_degree(DEG_TWO)>& sam
     //  k = 2k;
     size_t current_pot = 2; // current power of two
     size_t current_exp_array_index = 0;
-    while (current_pot <= num_samples)
+    while (current_pot <= NUM_SAMPLES)
     {
         exponent_lut.choose_array(current_exp_array_index);
-        const size_t outer_limit = num_samples / current_pot;
+        const size_t outer_limit = NUM_SAMPLES / current_pot;
         for (size_t outer_ndx = 0; outer_ndx < outer_limit; ++outer_ndx)
         {
             for (size_t inner_ndx = 0; inner_ndx < (current_pot >> 1); ++inner_ndx)
@@ -82,11 +82,11 @@ void spct_fourier_transform(ComplexArr<T, pow_two_value_of_degree(DEG_TWO)>& sam
 template <FloatingPt T, size_t N_SAMPLES = BoundedPowTwo_v<size_t, 1024>>
     requires(is_bounded_pow_two(N_SAMPLES))
 void calculate_max_map(const ComplexArr<T, N_SAMPLES>& samples_arr, BinMagArr<T, (N_SAMPLES >> 1)>& bin_mag_arr,
-                       const T threshold = min_gain_threshold<T>)
+                       const T threshold = MIN_GAIN_THRESHOLD<T>)
 {
-    // in order not to treat some arbitrary rounding errors like 1e-13 as valid magnitudes, everything beyond 0.01 is
-    // interpreted as 0.
-    const auto clipped_threshold = std::clamp<T>(threshold, min_gain_threshold<T>, N_SAMPLES >> 1);
+    // in order not to treat some arbitrary rounding errors like 1e-13 as valid magnitudes, everything beyond
+    // MIN_GAIN_THRESHOLD is interpreted as 0.
+    const auto clipped_threshold = std::clamp<T>(threshold, MIN_GAIN_THRESHOLD<T>, N_SAMPLES >> 1);
     size_t valid_entries = 0;
     for (size_t bin_number = 0; bin_number < N_SAMPLES >> 1; ++bin_number)
     {

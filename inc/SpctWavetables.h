@@ -24,8 +24,8 @@ enum class FunctionType : uint8_t
     WINDOWING
 };
 
-template <FloatingPt T, size_t WT_SIZE>
-    requires(is_bounded_pow_two(WT_SIZE))
+template <FloatingPt T, size_t WAVETABLE_SIZE>
+    requires(is_bounded_pow_two(WAVETABLE_SIZE))
 struct WaveTable
 {
     // default wavetable
@@ -33,17 +33,17 @@ struct WaveTable
     // fill output according to a periodic or windowing function
     explicit WaveTable(const std::function<T(const T)> function, const FunctionType& fn_type = FunctionType::PERIODIC)
     {
-        const T periodic_scalar = two_pi<T> * static_cast<T>(1) / WT_SIZE;
+        const T periodic_scalar = TWO_PI<T> * static_cast<T>(1) / WAVETABLE_SIZE;
         switch (fn_type)
         {
         case FunctionType::PERIODIC:
-            for (size_t index = 0; index < WT_SIZE; ++index)
+            for (size_t index = 0; index < WAVETABLE_SIZE; ++index)
             {
                 m_wavetable[index] = function(index * periodic_scalar);
             }
             break;
         case FunctionType::WINDOWING:
-            for (size_t index = 0; index < WT_SIZE; ++index)
+            for (size_t index = 0; index < WAVETABLE_SIZE; ++index)
             {
                 m_wavetable[index] = function(static_cast<T>(index));
             }
@@ -63,42 +63,43 @@ struct WaveTable
     auto cend() const noexcept { return m_wavetable.cend(); }
     /// @brief This is needed if the wrap-around of the wavetable index happens at the next-to-last index instead of the
     /// last.
-    void equalize_end_and_begin() const noexcept { m_wavetable[WT_SIZE - 1] = m_wavetable[0]; }
+    void equalize_end_and_begin() const noexcept { m_wavetable[WAVETABLE_SIZE - 1] = m_wavetable[0]; }
 
   private:
-    mutable std::array<T, WT_SIZE> m_wavetable{};
+    mutable std::array<T, WAVETABLE_SIZE> m_wavetable{};
 };
 
-template <FloatingPt T, size_t WT_SIZE>
-    requires(is_bounded_pow_two(WT_SIZE))
-struct SineWT : public WaveTable<T, WT_SIZE>
+template <FloatingPt T, size_t WAVETABLE_SIZE>
+    requires(is_bounded_pow_two(WAVETABLE_SIZE))
+struct SineWT : public WaveTable<T, WAVETABLE_SIZE>
 {
-    SineWT() : WaveTable<T, WT_SIZE>([](const T value) -> T { return std::sin(value); }) {}
+    SineWT() : WaveTable<T, WAVETABLE_SIZE>([](const T value) -> T { return std::sin(value); }) {}
 };
 
-template <FloatingPt T, size_t WT_SIZE>
-    requires(is_bounded_pow_two(WT_SIZE))
-struct SquareWT : public WaveTable<T, WT_SIZE>
+template <FloatingPt T, size_t WAVETABLE_SIZE>
+    requires(is_bounded_pow_two(WAVETABLE_SIZE))
+struct SquareWT : public WaveTable<T, WAVETABLE_SIZE>
 {
     SquareWT()
-        : WaveTable<T, WT_SIZE>([](const T value) -> T
-                                { return (value < std::numbers::pi_v<T>) ? static_cast<T>(-1) : static_cast<T>(1); })
+        : WaveTable<T, WAVETABLE_SIZE>(
+              [](const T value) -> T
+              { return (value < std::numbers::pi_v<T>) ? static_cast<T>(-1) : static_cast<T>(1); })
     {}
 };
 
-template <FloatingPt T, size_t WT_SIZE>
-    requires(is_bounded_pow_two(WT_SIZE))
-struct SawWT : public WaveTable<T, WT_SIZE>
+template <FloatingPt T, size_t WAVETABLE_SIZE>
+    requires(is_bounded_pow_two(WAVETABLE_SIZE))
+struct SawWT : public WaveTable<T, WAVETABLE_SIZE>
 {
-    SawWT() : WaveTable<T, WT_SIZE>([](const T value) -> T { return std::numbers::inv_pi_v<T> * value - 1; }) {}
+    SawWT() : WaveTable<T, WAVETABLE_SIZE>([](const T value) -> T { return std::numbers::inv_pi_v<T> * value - 1; }) {}
 };
 
-template <FloatingPt T, size_t WT_SIZE>
-    requires(is_bounded_pow_two(WT_SIZE))
-struct TriWT : public WaveTable<T, WT_SIZE>
+template <FloatingPt T, size_t WAVETABLE_SIZE>
+    requires(is_bounded_pow_two(WAVETABLE_SIZE))
+struct TriWT : public WaveTable<T, WAVETABLE_SIZE>
 {
     TriWT()
-        : WaveTable<T, WT_SIZE>(
+        : WaveTable<T, WAVETABLE_SIZE>(
               [](const T value) -> T
               {
                   const T half_pi = std::numbers::pi_v<T> / 2;
@@ -121,41 +122,42 @@ struct TriWT : public WaveTable<T, WT_SIZE>
     {}
 };
 
-template <FloatingPt T, size_t WT_SIZE>
-    requires(is_bounded_pow_two(WT_SIZE))
-struct HammingWindow : public WaveTable<T, WT_SIZE>
+template <FloatingPt T, size_t WAVETABLE_SIZE>
+    requires(is_bounded_pow_two(WAVETABLE_SIZE))
+struct HammingWindow : public WaveTable<T, WAVETABLE_SIZE>
 {
     HammingWindow()
-        : WaveTable<T, WT_SIZE>([](const T value) -> T
-                                { return 0.54 - 0.46 * std::cos(two_pi<T> * value / (WT_SIZE - 1)); },
-                                FunctionType::WINDOWING)
+        : WaveTable<T, WAVETABLE_SIZE>([](const T value) -> T
+                                       { return 0.54 - 0.46 * std::cos(TWO_PI<T> * value / (WAVETABLE_SIZE - 1)); },
+                                       FunctionType::WINDOWING)
     {}
 };
 
-template <FloatingPt T, size_t WT_SIZE>
-    requires(is_bounded_pow_two(WT_SIZE))
-struct VonHannWindow : public WaveTable<T, WT_SIZE>
+template <FloatingPt T, size_t WAVETABLE_SIZE>
+    requires(is_bounded_pow_two(WAVETABLE_SIZE))
+struct VonHannWindow : public WaveTable<T, WAVETABLE_SIZE>
 {
     VonHannWindow()
-        : WaveTable<T, WT_SIZE>([](const T value) -> T
-                                { return 0.5 * (1 - std::cos(two_pi<T> * value / (WT_SIZE - 1))); },
-                                FunctionType::WINDOWING)
+        : WaveTable<T, WAVETABLE_SIZE>([](const T value) -> T
+                                       { return 0.5 * (1 - std::cos(TWO_PI<T> * value / (WAVETABLE_SIZE - 1))); },
+                                       FunctionType::WINDOWING)
     {}
 };
 
-template <FloatingPt T, size_t WT_SIZE>
-    requires(is_bounded_pow_two(WT_SIZE))
-struct BartlettWindow : public WaveTable<T, WT_SIZE>
+template <FloatingPt T, size_t WAVETABLE_SIZE>
+    requires(is_bounded_pow_two(WAVETABLE_SIZE))
+struct BartlettWindow : public WaveTable<T, WAVETABLE_SIZE>
 {
     BartlettWindow()
-        : WaveTable<T, WT_SIZE>([](const T value) -> T
-        {
-            const size_t one_less_than_wt_size = WT_SIZE - 1;
-            const T fraction = static_cast<T>(2) / one_less_than_wt_size;
-            const T inv_fraction = static_cast<T>(1) / fraction;
-            return fraction * (inv_fraction - std::abs(value - inv_fraction));
-        },
-                                FunctionType::WINDOWING)
+        : WaveTable<T, WAVETABLE_SIZE>(
+              [](const T value) -> T
+              {
+                  const size_t one_less_than_wt_size = WAVETABLE_SIZE - 1;
+                  const T fraction = static_cast<T>(2) / one_less_than_wt_size;
+                  const T inv_fraction = static_cast<T>(1) / fraction;
+                  return fraction * (inv_fraction - std::abs(value - inv_fraction));
+              },
+              FunctionType::WINDOWING)
     {}
 };
 

@@ -16,14 +16,14 @@ inline void test_domain_specific_functions_and_values()
 {
     std::cout << "Testing domain specific functions and values..." << std::endl;
     // Won't compile if max_num_of_samples was invalid...
-    constexpr auto assert_min_is_valid = BoundedPowTwo_v<uint16_t, min_num_of_samples>;
+    constexpr auto assert_min_is_valid = BoundedPowTwo_v<uint16_t, MIN_NUM_OF_SAMPLES>;
     std::cout << "Minimum number of samples is: " << assert_min_is_valid << std::endl;
-    constexpr auto assert_max_is_valid = BoundedPowTwo_v<uint16_t, max_num_of_samples>;
+    constexpr auto assert_max_is_valid = BoundedPowTwo_v<uint16_t, MAX_NUM_OF_SAMPLES>;
     std::cout << "Maximum number of samples is: " << assert_max_is_valid << std::endl;
 
     // See if numbers align
-    static_assert(BoundedDegTwo_v<size_t, min_pow_two_degree> == assert_min_is_valid);
-    static_assert(BoundedDegTwo_v<size_t, max_pow_two_degree> == assert_max_is_valid);
+    static_assert(BoundedDegTwo_v<size_t, MIN_POW_TWO_DEGREE> == assert_min_is_valid);
+    static_assert(BoundedDegTwo_v<size_t, MAX_POW_TWO_DEGREE> == assert_max_is_valid);
     static_assert(BoundedDegTwo_v<size_t, 8> == 1u << 8);
     static_assert(is_bounded_degree(1u) == true);
     static_assert(is_bounded_degree(4u) == true);

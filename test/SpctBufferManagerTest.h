@@ -16,7 +16,7 @@
 using namespace LBTS::Spectral;
 inline void test_buffer_manager()
 {
-    using SelecedType = double;
+    using SelecedType = float;
     InstanceController<SelecedType> fx_instance(44100.0);
     auto params = FxParameters{.waveform_selection = OscWaveform::SINE,
                                .filter_cutoff = 20000.0,

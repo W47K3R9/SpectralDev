@@ -10,6 +10,7 @@
 #include <memory>
 namespace LBTS::Spectral
 {
+
 constexpr size_t FFT_SIZE = BoundedPowTwo_v<size_t, 1024>;
 constexpr size_t WT_SIZE = BoundedPowTwo_v<size_t, 256>;
 
@@ -18,7 +19,9 @@ namespace
 {
 template <FloatingPt T>
 using Oscs = ResynthOscs<T, WT_SIZE, FFT_SIZE>;
-}
+template <FloatingPt T>
+using CircularBuffer = CircularSampleBuffer<T, FFT_SIZE, WT_SIZE>;
+} // namespace
 
 template <FloatingPt T>
 class InstanceController
@@ -27,10 +30,10 @@ class InstanceController
     InstanceController()
         : m_fft_sp_ptr{std::make_shared<SyncPrimitives>()},
           m_tuning_sp_ptr{std::make_shared<SyncPrimitives>()},
-          m_circular_sample_buffer_ptr{std::make_shared<CircularSampleBuffer<T, FFT_SIZE>>()},
+          m_circular_buffer_ptr{std::make_shared<CircularBuffer<T>>()},
           m_resynth_oscs_ptr{std::make_shared<Oscs<T>>(m_sampling_freq)},
-          m_buff_man{m_sampling_freq, m_circular_sample_buffer_ptr, m_resynth_oscs_ptr, m_fft_sp_ptr},
-          m_calculation_engine{m_resynth_oscs_ptr, m_circular_sample_buffer_ptr, m_fft_sp_ptr, m_tuning_sp_ptr},
+          m_buff_man{m_sampling_freq, m_circular_buffer_ptr, m_resynth_oscs_ptr, m_fft_sp_ptr},
+          m_calculation_engine{m_resynth_oscs_ptr, m_circular_buffer_ptr, m_fft_sp_ptr, m_tuning_sp_ptr},
           m_trigger_manager{m_tuning_sp_ptr}
     {}
 
@@ -38,10 +41,10 @@ class InstanceController
         : m_sampling_freq{sampling_freq},
           m_fft_sp_ptr{std::make_shared<SyncPrimitives>()},
           m_tuning_sp_ptr{std::make_shared<SyncPrimitives>()},
-          m_circular_sample_buffer_ptr{std::make_shared<CircularSampleBuffer<T, FFT_SIZE>>()},
+          m_circular_buffer_ptr{std::make_shared<CircularBuffer<T>>()},
           m_resynth_oscs_ptr{std::make_shared<Oscs<T>>(m_sampling_freq)},
-          m_buff_man{m_sampling_freq, m_circular_sample_buffer_ptr, m_resynth_oscs_ptr, m_fft_sp_ptr},
-          m_calculation_engine{m_resynth_oscs_ptr, m_circular_sample_buffer_ptr, m_fft_sp_ptr, m_tuning_sp_ptr},
+          m_buff_man{m_sampling_freq, m_circular_buffer_ptr, m_resynth_oscs_ptr, m_fft_sp_ptr},
+          m_calculation_engine{m_resynth_oscs_ptr, m_circular_buffer_ptr, m_fft_sp_ptr, m_tuning_sp_ptr},
           m_trigger_manager{m_tuning_sp_ptr}
     {}
 
@@ -63,7 +66,6 @@ class InstanceController
         m_calculation_engine.set_freeze(params.freeze);
         m_buff_man.set_cutoff(params.filter_cutoff);
         m_buff_man.set_gain(params.gain);
-        m_buff_man.set_feedback(params.feedback); /// @note will be removed
         m_trigger_manager.set_trigger_interval(params.tune_interval_ms);
         m_trigger_manager.set_triggered_tuning_behaviour(params.continuous_tuning);
     }
@@ -81,14 +83,14 @@ class InstanceController
     void prepare_to_play(double sampling_freq)
     {
         m_sampling_freq = sampling_freq;
-        m_circular_sample_buffer_ptr->clear_arrays();
+        m_circular_buffer_ptr->clear_arrays();
     }
 
     /// @brief Will reset the BufferManager, the ResynthOscillators and the CircularBuffer.
     /// @return void
     void reset()
     {
-        m_circular_sample_buffer_ptr->clear_arrays();
+        m_circular_buffer_ptr->clear_arrays();
         m_resynth_oscs_ptr->reset(m_sampling_freq);
         m_buff_man.reset(m_sampling_freq);
         m_calculation_engine.reset();
@@ -98,10 +100,10 @@ class InstanceController
     double m_sampling_freq = 44100.0;
     std::shared_ptr<SyncPrimitives> m_fft_sp_ptr;
     std::shared_ptr<SyncPrimitives> m_tuning_sp_ptr;
-    std::shared_ptr<CircularSampleBuffer<T, FFT_SIZE>> m_circular_sample_buffer_ptr;
-    std::shared_ptr<ResynthOscs<T, WT_SIZE, FFT_SIZE>> m_resynth_oscs_ptr;
-    BufferManager<T, FFT_SIZE> m_buff_man;
-    CalculationEngine<T, FFT_SIZE> m_calculation_engine;
+    std::shared_ptr<CircularBuffer<T>> m_circular_buffer_ptr;
+    std::shared_ptr<Oscs<T>> m_resynth_oscs_ptr;
+    BufferManager<T, FFT_SIZE, WT_SIZE> m_buff_man;
+    CalculationEngine<T, FFT_SIZE, WT_SIZE> m_calculation_engine;
     TriggerManager m_trigger_manager;
 };
 } // namespace LBTS::Spectral

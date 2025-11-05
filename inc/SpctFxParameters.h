@@ -1,10 +1,11 @@
 /**
  * Author: Lucas Scheidt
- * Date: 28.12.24
+ * Date: 27.10.25
  *
  * Just a simple struct representing all possible FX parameters that are tweakable from external. The plugin is intended
  * to be updated with a set of such parameters
  */
+
 #pragma once
 #include "SpctDomainSpecific.h"
 #include <cstdint>
@@ -18,7 +19,6 @@ struct FxParameters
     float fft_threshold;
     float frequency_offset;
     float gain;
-    float feedback;
     uint16_t glide_steps;
     size_t voices;
     bool freeze;

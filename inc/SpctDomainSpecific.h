@@ -10,6 +10,7 @@
 #include <bit>
 #include <complex>
 #include <condition_variable>
+#include <cstddef>
 #include <cstdint>
 #include <mutex>
 #include <numbers>
@@ -92,17 +93,17 @@ enum class OscWaveform : uint8_t
 };
 
 /// @brief Plugin specific constants
-constexpr uint32_t min_pow_two_degree = 0;
-constexpr uint32_t max_pow_two_degree = 11;
-constexpr uint32_t min_num_of_samples = 1;
-constexpr uint32_t max_num_of_samples = 2048;
-constexpr uint32_t max_oscillators = 46;
+constexpr uint32_t MIN_POW_TWO_DEGREE = 0;
+constexpr uint32_t MAX_POW_TWO_DEGREE = 11;
+constexpr uint32_t MIN_NUM_OF_SAMPLES = 1;
+constexpr uint32_t MAX_NUM_OF_SAMPLES = 2048;
+constexpr uint32_t MAX_VOICES = 46;
 
 template <FloatingPt T>
-constexpr T min_gain_threshold = 0.01;
+constexpr T MIN_GAIN_THRESHOLD = 0.001;
 
 template <FloatingPt T>
-constexpr T two_pi = std::numbers::pi_v<T> * 2;
+constexpr T TWO_PI = std::numbers::pi_v<T> * 2;
 
 /// @brief This concept enforces the use of unsigned integer values with a maximum size of 8 Byte (64 Bit).
 /// @tparam T: Type to constrain.
@@ -123,7 +124,7 @@ concept UnsignedGE16 = std::is_unsigned_v<T> && sizeof(T) <= 8 && sizeof(T) > 1;
 template <UnsignedL64 T>
 constexpr bool is_bounded_degree(const T degree_to_check) noexcept
 {
-    return degree_to_check <= max_pow_two_degree && degree_to_check >= min_pow_two_degree;
+    return degree_to_check <= MAX_POW_TWO_DEGREE && degree_to_check >= MIN_POW_TWO_DEGREE;
 }
 
 /// @brief Compile- or runtime check if a given number of samples is in the valid range of this plugin.
@@ -133,7 +134,7 @@ constexpr bool is_bounded_degree(const T degree_to_check) noexcept
 template <UnsignedL64 T>
 constexpr bool is_bounded_no_of_samples(T no_of_samples) noexcept
 {
-    return no_of_samples >= min_num_of_samples && no_of_samples <= max_num_of_samples;
+    return no_of_samples >= MIN_NUM_OF_SAMPLES && no_of_samples <= MAX_NUM_OF_SAMPLES;
 }
 
 /// @brief Checks the range, as well as that the number is actually a power of two.
@@ -157,13 +158,13 @@ template <UnsignedL64 T>
 constexpr T pow_two_value_of_degree(const T degree) noexcept
 {
     // make sure the one to shift left has the same type as i_degree.
-    constexpr T correct_one = 1;
+    constexpr T CORRECT_ONE = 1;
     // safety check to prevent overflows.
     if (degree >= sizeof(T) * 8)
     {
-        return (correct_one << sizeof(T) * 8 - 1);
+        return (CORRECT_ONE << sizeof(T) * 8 - 1);
     }
-    return correct_one << degree;
+    return CORRECT_ONE << degree;
 }
 
 /// @brief Alias for an array that contains pairs of indices and values.
@@ -193,12 +194,12 @@ template <UnsignedGE16 T, T POT>
 struct BoundedPowTwo
 {
     BoundedPowTwo() = delete;
-    static constexpr T value = POT;
+    static constexpr T VALUE = POT;
 };
 
 /// @brief For conveniance you can access the value directly like in the c++ typic implementations.
 template <UnsignedGE16 T, T POT>
-constexpr T BoundedPowTwo_v = BoundedPowTwo<T, POT>::value;
+constexpr T BoundedPowTwo_v = BoundedPowTwo<T, POT>::VALUE;
 
 /// @brief Like BoundedPowTwo but you specify a degree instead of a direct value. The rule with at least 16 Bit also
 /// applies to this struct!
@@ -209,13 +210,13 @@ template <UnsignedGE16 T, uint8_t DEG>
 struct BoundedDegTwo
 {
     BoundedDegTwo() = delete;
-    static constexpr uint8_t degree = DEG;
-    static constexpr T value = pow_two_value_of_degree<T>(DEG);
+    static constexpr uint8_t DEGREE = DEG;
+    static constexpr T VALUE = pow_two_value_of_degree<T>(DEG);
 };
 
 /// @brief Access the actual number of samples that resulted from the given degree.
 template <UnsignedGE16 T, uint8_t deg>
-constexpr T BoundedDegTwo_v = BoundedDegTwo<T, deg>::value;
+constexpr T BoundedDegTwo_v = BoundedDegTwo<T, deg>::VALUE;
 
 /// @brief Like clip_to_lower_pow_two but only for valid plugin values. To guarantee that the max value can be assigned,
 /// a passed type has to be at least 16 bytes large!
@@ -223,18 +224,18 @@ constexpr T BoundedDegTwo_v = BoundedDegTwo<T, deg>::value;
 /// @param i_value: The value to clip
 /// @return Clipped value of type T
 template <UnsignedGE16 T>
-constexpr T clip_to_lower_bounded_pow_two(T i_value) noexcept
+constexpr T clip_to_lower_bounded_pow_two(T value) noexcept
 {
-    if (i_value <= min_num_of_samples)
+    if (value <= MIN_NUM_OF_SAMPLES)
     {
-        return BoundedPowTwo_v<T, min_num_of_samples>;
+        return BoundedPowTwo_v<T, MIN_NUM_OF_SAMPLES>;
     }
-    if (i_value >= max_num_of_samples)
+    if (value >= MAX_NUM_OF_SAMPLES)
     {
-        return BoundedPowTwo_v<T, max_num_of_samples>;
+        return BoundedPowTwo_v<T, MAX_NUM_OF_SAMPLES>;
     }
     // explicit type shoudn't be needed since i_value is of type T but just to be sure...
-    return std::bit_floor<T>(i_value);
+    return std::bit_floor<T>(value);
 }
 
 /// @brief Get the degree of a power of two value.
@@ -253,9 +254,9 @@ constexpr T degree_of_pow_two_value(const V power_to_calculate) noexcept
     {
         guaranteed_pot = std::bit_floor(power_to_calculate);
     }
-    constexpr V correct_sized_one = 1;
+    constexpr V CORRECT_SIZED_ONE = 1;
     T first_occurance = 0;
-    while ((correct_sized_one << first_occurance) != guaranteed_pot)
+    while ((CORRECT_SIZED_ONE << first_occurance) != guaranteed_pot)
     {
         ++first_occurance;
     }

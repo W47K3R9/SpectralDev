@@ -29,8 +29,8 @@ enum IncAmpComparison : uint8_t
 /// @brief A single wavetable oscillator.
 /// @tparam T The type of the wavetable entries.
 /// @tparam WT_SIZE The size of the wavetable that will be read.
-template <FloatingPt T, size_t WT_SIZE>
-    requires(is_bounded_pow_two(WT_SIZE))
+template <FloatingPt T, size_t WAVETABLE_SIZE>
+    requires(is_bounded_pow_two(WAVETABLE_SIZE))
 class WTOscillator
 {
   public:
@@ -40,7 +40,7 @@ class WTOscillator
     /// @brief Concrete and valid creation.
     /// @param sampling_freq Specified by DAW environment.
     /// @param wt_ptr Pointer to a wavetable. If nullptr is given the Oscillator will only output zeros.
-    WTOscillator(const double sampling_freq, const WaveTable<T, WT_SIZE>* wt_ptr)
+    WTOscillator(const double sampling_freq, const WaveTable<T, WAVETABLE_SIZE>* wt_ptr)
         : m_sampling_freq{sampling_freq},
           m_wt_ptr{wt_ptr}
     {
@@ -137,9 +137,9 @@ class WTOscillator
         const float value_fraction = m_table_index - static_cast<float>(current_index);
         const T output = value_a + (value_fraction * (value_b - value_a));
         // 5. wrap if needed
-        if ((m_table_index += m_index_increment) >= (m_internal_size))
+        if ((m_table_index += m_index_increment) >= (INTERNAL_SIZE))
         {
-            m_table_index -= m_internal_size;
+            m_table_index -= INTERNAL_SIZE;
         }
         // 6. update the phase and amplitude values in a gliding manner.
         m_index_increment =
@@ -174,7 +174,7 @@ class WTOscillator
         // Be sure not to tune above nyquist!
         // increment = N_WT * f0 / fs
         to_freq = std::clamp<T>(to_freq, 0, m_nyquist_freq);
-        const float index_incr = m_internal_size * to_freq * m_inv_sampling_freq;
+        const float index_incr = INTERNAL_SIZE * to_freq * m_inv_sampling_freq;
 
         // 2. calculate resulting fraction.
         const float index_incr_frac = (index_incr - m_prev_index_increment) * m_glide_resolution;
@@ -213,7 +213,7 @@ class WTOscillator
     /// since this will always be called in the parameter setup phase of the plugin the advance function will always
     /// dereference a valid pointer. If this call was about to occur concurrently this function must be made thread
     /// safe!
-    void select_waveform(const WaveTable<T, WT_SIZE>* wt_ptr) { m_wt_ptr = wt_ptr; }
+    void select_waveform(const WaveTable<T, WAVETABLE_SIZE>* wt_ptr) { m_wt_ptr = wt_ptr; }
 
     /// @brief Set the transition duration from one frequency step to the next.
     void set_glide_steps(uint16_t glide_steps) noexcept
@@ -230,7 +230,6 @@ class WTOscillator
     float m_index_increment = 0;
     float m_prev_index_increment = 0;
 
-    /// @todo this should be a configurable parameter!
     T m_amplitude = 0;
     T m_prev_amplitude = 0;
 
@@ -243,7 +242,7 @@ class WTOscillator
     double m_sampling_freq = 44100.0;
     double m_nyquist_freq = m_sampling_freq / 2.0;
     double m_inv_sampling_freq = 1.0 / m_sampling_freq;
-    const WaveTable<T, WT_SIZE>* m_wt_ptr = nullptr;
-    static constexpr size_t m_internal_size = WT_SIZE - 1;
+    const WaveTable<T, WAVETABLE_SIZE>* m_wt_ptr = nullptr;
+    static constexpr size_t INTERNAL_SIZE = WAVETABLE_SIZE - 1;
 };
 } // namespace LBTS::Spectral

@@ -22,10 +22,10 @@ inline void test_real_voice()
 {
     constexpr auto BUFF_SIZE = BoundedPowTwo_v<size_t, 1024>;
     InstanceController<double> fx_instance(44100.0);
-    std::ofstream txt_file_with_raw_sine{"real_voice.txt"};
+    std::ofstream txt_file_with_raw_voice{"real_voice.txt"};
     std::ranges::for_each(VoiceExmp::sample_array,
                           [&](auto& element)
-                          { txt_file_with_raw_sine << std::setprecision(16) << element << std::endl; });
+                          { txt_file_with_raw_voice << std::setprecision(16) << element << std::endl; });
     std::array<double, BUFF_SIZE> xl_array{};
     std::ranges::copy(VoiceExmp::sample_array, xl_array.data());
     auto params = FxParameters{.waveform_selection = OscWaveform::SINE,
@@ -34,7 +34,7 @@ inline void test_real_voice()
                                .frequency_offset = 0,
                                .gain = 2.0f,
                                .voices = 8,
-                               .freeze = false};
+                               .continuous_tuning = true};
     const auto now = std::chrono::system_clock::now();
     fx_instance.update_parameters(params);
     fx_instance.process_daw_chunk(xl_array.data(), BUFF_SIZE);
