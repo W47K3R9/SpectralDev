@@ -61,6 +61,7 @@ class InstanceController
     {
         m_resynth_oscs_ptr->select_waveform(params.waveform_selection);
         m_resynth_oscs_ptr->set_glide_steps(params.glide_steps);
+        m_resynth_oscs_ptr->set_frequency_offset(params.frequency_offset);
         m_calculation_engine.set_voices(params.voices);
         m_calculation_engine.set_threshold(params.fft_threshold);
         m_calculation_engine.set_freeze(params.freeze);

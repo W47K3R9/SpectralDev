@@ -30,9 +30,7 @@ template <FloatingPt T, size_t WAVETABLE_SIZE, size_t FFT_SIZE, size_t NUM_OSCS 
 class ResynthOscs
 {
   public:
-    /// @brief Avoid instantiation with a wrong sampling frequency.
     ResynthOscs() = delete;
-
     /// @brief Correct instantiation with a valid sampling frequency.
     /// @param sampling_freq Determined by the DAW.
     explicit ResynthOscs(const double sampling_freq)
@@ -44,17 +42,10 @@ class ResynthOscs
             osc = WTOscillator<T, WAVETABLE_SIZE>{sampling_freq, &m_sin_wt};
         }
     }
-
-    /// @note Deleted! Rule of zero.
     ResynthOscs(const ResynthOscs&) = delete;
-    /// @note Deleted! Rule of zero.
     ResynthOscs& operator=(const ResynthOscs&) = delete;
-    /// @note Deleted! Rule of zero.
     ResynthOscs(ResynthOscs&&) noexcept = delete;
-    /// @note Deleted! Rule of zero.
     ResynthOscs& operator=(ResynthOscs&&) = delete;
-
-    /// @brief Defaulted since no dynamic resources were acquired.
     ~ResynthOscs() = default;
 
     /// @brief Get the summed output of all playing oscillators.
@@ -63,13 +54,8 @@ class ResynthOscs
     {
         // valid entries is guaranteed to be smaller then max_oscillators!
         T summed_output = 0;
-        // I don't know if ranges has some advantages...
-        // std::ranges::for_each(m_osc_array,
-        // [&summed_output, this](auto& osc) { summed_output += osc.advance_and_receive_output(); });
-        for (size_t active_osc = 0; active_osc < NUM_OSCS; ++active_osc)
-        {
-            summed_output += m_osc_array[active_osc].advance_and_receive_output();
-        }
+        std::ranges::for_each(m_osc_array,
+                              [&summed_output](auto& osc) { summed_output += osc.advance_and_receive_output(); });
         return summed_output;
     }
 
@@ -93,31 +79,37 @@ class ResynthOscs
         std::ranges::for_each(active_entries,
                               [&nth_osc, this](const auto& entry)
                               {
-                                  tune_and_set_amp_oscillator_n(
-                                      nth_osc, entry.first * m_freq_resolution, entry.second * m_amp_correction);
+                                  m_osc_array[nth_osc].tune_and_set_amp(entry.first * m_freq_resolution + m_freq_offset,
+                                                                        entry.second * m_amp_correction);
                                   nth_osc += 1;
                               });
         const auto silent_entries = std::views::counted(bin_mag_arr.begin() + num_active_oscs, num_silent_oscs);
         std::ranges::for_each(silent_entries,
                               [&nth_osc, this]([[maybe_unused]] const auto& entry)
                               {
-                                  tune_and_set_amp_oscillator_n(nth_osc, 0, 0);
+                                  m_osc_array[nth_osc].tune_and_set_amp(0, 0);
                                   nth_osc += 1;
                               });
     }
 
-    void mute_oscillators() noexcept
+    /// @brief Muting means set frequency and amplitude of all oscillators to zero.
+    void mute_oscillators() const noexcept
     {
         for (auto& osc : m_osc_array)
         {
-            osc.tune_and_set_amp(1, 0);
+            osc.tune_and_set_amp(0, 0);
         }
     }
+
+    /// @brief Will be added to the calculated FFT frequency
+    /// @param freq_offset: in Hz
+    void set_frequency_offset(float freq_offset) noexcept { m_freq_offset = static_cast<T>(freq_offset); }
 
     /// @brief Reset all oscillators to a given sampling frequency.
     /// @param sampling_freq Determined by the DAW.
     void reset(const double sampling_freq) noexcept
     {
+        m_freq_offset = 0;
         m_sampling_freq = sampling_freq;
         m_freq_resolution = sampling_freq / FFT_SIZE;
         for (auto& osc : m_osc_array)
@@ -154,9 +146,10 @@ class ResynthOscs
         }
     }
 
+    /// @brief Avoids clicks and pops when tuning from one frequency set to the next.
+    /// @param glide_steps: Samples it will take to transition from one amplitude / frequency to the next.
     void set_glide_steps(uint16_t glide_steps) noexcept
     {
-        /// @todo limit glide steps!
         for (auto& osc : m_osc_array)
         {
             osc.set_glide_steps(glide_steps);
@@ -164,11 +157,6 @@ class ResynthOscs
     }
 
   private:
-    void tune_and_set_amp_oscillator_n(const size_t nth_osc, const T freq, const T amp)
-    {
-        m_osc_array[nth_osc].tune_and_set_amp(freq, amp);
-    }
-
     // generate wavetables
     const SineWT<T, WAVETABLE_SIZE> m_sin_wt{};
     const SquareWT<T, WAVETABLE_SIZE> m_square_wt{};
@@ -178,5 +166,6 @@ class ResynthOscs
     double m_freq_resolution;
     const T m_amp_correction = static_cast<T>(2) / FFT_SIZE;
     OscArray<T, WAVETABLE_SIZE, NUM_OSCS> m_osc_array;
+    std::atomic<T> m_freq_offset = 0;
 };
 } // namespace LBTS::Spectral
