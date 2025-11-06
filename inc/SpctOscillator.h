@@ -12,6 +12,7 @@
 #include "SpctWavetables.h"
 #include <algorithm>
 #include <atomic>
+#include <cassert>
 #include <cmath>
 #include <utility>
 
@@ -98,15 +99,18 @@ class WTOscillator
     /// function! Checking this inside the function is too expensive.
     [[nodiscard]] T advance_and_receive_output() noexcept
     {
+#ifndef NDEBUG
+        assert(m_wt_ptr != nullptr);
+#endif
         // 1. determine the index as a whole number
         // 2. get the index above that number and wrap around if 1. is the last index of the WT
         // const auto current_index = static_cast<size_t>(m_table_index);
         // const size_t next_index = (current_index == WT_SIZE - 1) ? 0 : current_index + 1;
 
-        // -> the wrap around for next_index to be 0 if current_index == WT_SIZE - 1 can be omitted if the oscillator
-        // works with an internal size smaller by 1 than the wavetable.
-        // Then the current m_table_index will wrap around if the increase by m_index_increment leads to a value greater
-        // than WT_SIZE - 1. In order to still work properly the last index of the WT has to be the same as the first.
+        // -> the wrap around for next_index to be 0 if current_index == WT_SIZE - 1 can be omitted if the
+        // oscillator works with an internal size smaller by 1 than the wavetable. Then the current m_table_index
+        // will wrap around if the increase by m_index_increment leads to a value greater than WT_SIZE - 1. In order
+        // to still work properly the last index of the WT has to be the same as the first.
 
         // Example:
         // -> with conditional check the fractions will be between:
@@ -224,21 +228,19 @@ class WTOscillator
 
   private:
     using IncrementAmpPair = std::pair<std::atomic<float>, std::atomic<T>>;
-
     // float is precise enough for interpolation between indices
     float m_table_index = 0;
     float m_index_increment = 0;
     float m_prev_index_increment = 0;
-
+    // amplitude related
     T m_amplitude = 0;
     T m_prev_amplitude = 0;
-
     // initial glide resolution is 0.01 which is 1 / 100 and equivalent to a glide using 100 samples.
     std::atomic<T> m_glide_resolution = 0.01;
     IncrementAmpPair m_glide_fraction = {0, 0};
     IncrementAmpPair m_upper_limit = {0, 0};
     IncrementAmpPair m_lower_limit = {0, 0};
-
+    // characteristic parameters
     double m_sampling_freq = 44100.0;
     double m_nyquist_freq = m_sampling_freq / 2.0;
     double m_inv_sampling_freq = 1.0 / m_sampling_freq;
