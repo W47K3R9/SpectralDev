@@ -35,6 +35,7 @@ class ResynthOscs
     /// @param sampling_freq Determined by the DAW.
     explicit ResynthOscs(const double sampling_freq)
         : m_sampling_freq{sampling_freq},
+          m_nyquist_freq{m_sampling_freq / 2.0},
           m_freq_resolution{sampling_freq / static_cast<double>(FFT_SIZE)}
     {
         for (auto& osc : m_osc_array)
@@ -79,8 +80,10 @@ class ResynthOscs
         std::ranges::for_each(active_entries,
                               [&nth_osc, this](const auto& entry)
                               {
-                                  m_osc_array[nth_osc].tune_and_set_amp(entry.first * m_freq_resolution + m_freq_offset,
-                                                                        entry.second * m_amp_correction);
+                                  // The offset of 0.5 is here to tune everything to the middle frequency of each bin.
+                                  const auto freq = std::clamp<T>(
+                                      (entry.first + 0.5 + m_freq_offset) * m_freq_resolution, 0.5, m_nyquist_freq);
+                                  m_osc_array[nth_osc].tune_and_set_amp(freq, entry.second * m_amp_correction);
                                   nth_osc += 1;
                               });
         const auto silent_entries = std::views::counted(bin_mag_arr.begin() + num_active_oscs, num_silent_oscs);
@@ -102,8 +105,9 @@ class ResynthOscs
     }
 
     /// @brief Will be added to the calculated FFT frequency
-    /// @param freq_offset: in Hz
-    void set_frequency_offset(float freq_offset) noexcept { m_freq_offset = static_cast<T>(freq_offset); }
+    /// @param freq_offset: Some float in the range of -8 to +8 that will be added to the frequency bin. This will
+    /// result in a detuning range from -3 to +3 octaves.
+    void set_frequency_offset(float freq_offset) noexcept { m_freq_offset = std::clamp(freq_offset, -8.0f, 8.0f); }
 
     /// @brief Reset all oscillators to a given sampling frequency.
     /// @param sampling_freq Determined by the DAW.
@@ -111,7 +115,8 @@ class ResynthOscs
     {
         m_freq_offset = 0;
         m_sampling_freq = sampling_freq;
-        m_freq_resolution = sampling_freq / FFT_SIZE;
+        m_nyquist_freq = m_sampling_freq / 2.0;
+        m_freq_resolution = m_sampling_freq / FFT_SIZE;
         for (auto& osc : m_osc_array)
         {
             osc.reset(sampling_freq);
@@ -163,9 +168,10 @@ class ResynthOscs
     const TriWT<T, WAVETABLE_SIZE> m_tri_wt{};
     const SawWT<T, WAVETABLE_SIZE> m_saw_wt{};
     double m_sampling_freq;
+    double m_nyquist_freq;
     double m_freq_resolution;
     const T m_amp_correction = static_cast<T>(2) / FFT_SIZE;
     OscArray<T, WAVETABLE_SIZE, NUM_OSCS> m_osc_array;
-    std::atomic<T> m_freq_offset = 0;
+    std::atomic<float> m_freq_offset = 0;
 };
 } // namespace LBTS::Spectral

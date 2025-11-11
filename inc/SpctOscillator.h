@@ -168,16 +168,34 @@ class WTOscillator
         m_glide_fraction = std::make_pair(0, 0);
     }
 
+    /// @brief Change the look up table.
+    /// @param wt_ptr A pointer to the wanted lookup table.
+    /// since this will always be called in the parameter setup phase of the plugin the advance function will always
+    /// dereference a valid pointer. If this call was about to occur concurrently this function must be made thread
+    /// safe!
+    void select_waveform(const WaveTable<T, WAVETABLE_SIZE>* wt_ptr) { m_wt_ptr = wt_ptr; }
+
+    /// @brief Set the transition duration from one frequency step to the next.
+    void set_glide_steps(uint16_t glide_steps) noexcept
+    {
+        glide_steps = std::clamp<uint16_t>(glide_steps, 1, std::numeric_limits<uint16_t>::max());
+        m_glide_resolution = 1.0 / glide_steps;
+    }
+
     /// @brief This will set the increment rate inside the wavetable as well as the oscillators amplitude.
     /// The function will be called concurrently!
     /// @param to_freq The oscillator will output it's waveform with this frequency (in Hz).
     /// @param amplitude value of the amplitude
     void tune_and_set_amp(T to_freq, const T amplitude) noexcept
     {
+// The clamping can be outsourced to the ResynthOscs. That way the function only gets called once for all
+// oscillators.
+#ifndef NDEBUG
+        to_freq = std::clamp<T>(to_freq, 0, m_nyquist_freq);
+#endif
         // 1. calculate index increment.
         // Be sure not to tune above nyquist!
         // increment = N_WT * f0 / fs
-        to_freq = std::clamp<T>(to_freq, 0, m_nyquist_freq);
         const float index_incr = INTERNAL_SIZE * to_freq * m_inv_sampling_freq;
 
         // 2. calculate resulting fraction.
@@ -210,20 +228,6 @@ class WTOscillator
 
         // 4. update the fraction.
         m_glide_fraction = std::make_pair(index_incr_frac, amp_frac);
-    }
-
-    /// @brief Change the look up table.
-    /// @param wt_ptr A pointer to the wanted lookup table.
-    /// since this will always be called in the parameter setup phase of the plugin the advance function will always
-    /// dereference a valid pointer. If this call was about to occur concurrently this function must be made thread
-    /// safe!
-    void select_waveform(const WaveTable<T, WAVETABLE_SIZE>* wt_ptr) { m_wt_ptr = wt_ptr; }
-
-    /// @brief Set the transition duration from one frequency step to the next.
-    void set_glide_steps(uint16_t glide_steps) noexcept
-    {
-        glide_steps = std::clamp<uint16_t>(glide_steps, 1, std::numeric_limits<uint16_t>::max());
-        m_glide_resolution = 1.0 / glide_steps;
     }
 
   private:

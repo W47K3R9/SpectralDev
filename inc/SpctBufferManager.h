@@ -9,7 +9,7 @@
 #pragma once
 #include "SpctCircularBuffer.h"
 #include "SpctDomainSpecific.h"
-#include "SpctOscillatorStack.h"
+#include "SpctResyncOscsillators.h"
 #include <algorithm>
 #include <cassert>
 #include <cmath>

@@ -25,7 +25,7 @@ add_executable(${PROJECT_NAME} main.cpp
         inc/SpctProcessingFunctions.h
         inc/SpctOscillator.h
         inc/SpctDomainSpecific.h
-        inc/SpctOscillatorStack.h
+        inc/SpctResyncOscsillators.h
         inc/SpctBufferManager.h
         inc/SpctCircularBuffer.h
         inc/SpctWavetables.h

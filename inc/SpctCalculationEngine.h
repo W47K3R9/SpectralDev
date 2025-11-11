@@ -11,8 +11,8 @@
 #include "SpctCircularBuffer.h"
 #include "SpctDomainSpecific.h"
 #include "SpctExponentLUT.h"
-#include "SpctOscillatorStack.h"
 #include "SpctProcessingFunctions.h"
+#include "SpctResyncOscsillators.h"
 #include <atomic>
 #include <cassert>
 #include <cstddef>

@@ -4,7 +4,7 @@
 #include "SpctCircularBuffer.h"
 #include "SpctDomainSpecific.h"
 #include "SpctFxParameters.h"
-#include "SpctOscillatorStack.h"
+#include "SpctResyncOscsillators.h"
 #include "SpctTriggerManager.h"
 #include <cstddef>
 #include <memory>

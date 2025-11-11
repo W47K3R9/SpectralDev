@@ -11,6 +11,7 @@
 #include "SpctExponentLUT.h"
 #include <algorithm>
 #include <complex>
+#include <cstddef>
 
 namespace LBTS::Spectral
 {
@@ -81,14 +82,15 @@ void spct_fourier_transform(ComplexArr<T, pow_two_value_of_degree(DEG_TWO)>& sam
 
 template <FloatingPt T, size_t N_SAMPLES = BoundedPowTwo_v<size_t, 1024>>
     requires(is_bounded_pow_two(N_SAMPLES))
-void calculate_max_map(const ComplexArr<T, N_SAMPLES>& samples_arr, BinMagArr<T, (N_SAMPLES >> 1)>& bin_mag_arr,
+void calculate_max_map(const ComplexArr<T, N_SAMPLES>& samples_arr, BinMagArr<T, (N_SAMPLES / 2)>& bin_mag_arr,
                        const T threshold = MIN_GAIN_THRESHOLD<T>)
 {
     // in order not to treat some arbitrary rounding errors like 1e-13 as valid magnitudes, everything beyond
     // MIN_GAIN_THRESHOLD is interpreted as 0.
-    const auto clipped_threshold = std::clamp<T>(threshold, MIN_GAIN_THRESHOLD<T>, N_SAMPLES >> 1);
+    constexpr size_t HALF_FFT_SIZE = N_SAMPLES >> 1;
+    const auto clipped_threshold = std::clamp<T>(threshold, MIN_GAIN_THRESHOLD<T>, HALF_FFT_SIZE);
     size_t valid_entries = 0;
-    for (size_t bin_number = 0; bin_number < N_SAMPLES >> 1; ++bin_number)
+    for (size_t bin_number = 0; bin_number < HALF_FFT_SIZE; ++bin_number)
     {
         if (const auto abs_val = std::abs<T>(samples_arr[bin_number]); abs_val >= clipped_threshold)
         {
