@@ -22,7 +22,7 @@ struct FxParameters
     uint16_t glide_steps;
     size_t voices;
     bool freeze;
-    bool continuous_tuning;
+    bool stepped_tuning;
     uint16_t tune_interval_ms;
     /// @todo implement clocked tuning along with options for both steady and midi clock.
 };

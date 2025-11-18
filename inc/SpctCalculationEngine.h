@@ -104,8 +104,8 @@ class CalculationEngine
                     std::lock_guard lock{m_bin_mag_array_mtx};
                     calculate_max_map<T, FFT_SIZE>(fft_samples, m_bin_mag_arr, m_threshold);
                 }
-                // common_condition will be used: true -> continuous tuning, false -> triggered behaviour.
-                if (m_tuning_sp_ptr->common_ondition)
+                // common_condition will be used: true -> stepped tuning, false -> continuous tuning.
+                if (!m_tuning_sp_ptr->common_ondition)
                 {
                     m_tuning_sp_ptr->signalling_cv.notify_one();
                 }

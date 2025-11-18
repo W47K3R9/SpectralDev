@@ -41,13 +41,13 @@ class TriggerManager
         }
     }
 
-    /// @brief The trigger manager only affects the plugin if continuous tuning (the passed boolean) is false.
-    /// @param continuous_tuning: A switch determining if the trigger manager or the calculation engine initiates the
+    /// @brief The trigger manager only affects the plugin if stepped tuning (the passed boolean) is true.
+    /// @param stepped_tuning: A switch determining if the trigger manager or the calculation engine initiates the
     /// tuning of the oscillators.
     /// @return void
-    void set_triggered_tuning_behaviour(bool continuous_tuning) noexcept
+    void set_triggered_tuning_behaviour(bool stepped_tuning) noexcept
     {
-        m_tuning_sp_ptr->common_ondition = continuous_tuning;
+        m_tuning_sp_ptr->common_ondition = stepped_tuning;
     }
 
     void set_trigger_interval(uint16_t time_in_ms)
@@ -63,8 +63,8 @@ class TriggerManager
             std::unique_lock lock{m_worker_sps.signalling_mtx};
             m_worker_sps.signalling_cv.wait_for(lock, m_tuning_interval);
             // m_stop_workers could have become true during wait, in that case signalling is unnecessary.
-            // common_condition will be used: true -> continuous tuning, false -> triggered behaviour.
-            if (!m_tuning_sp_ptr->common_ondition && !m_stop_workers)
+            // common_condition will be used: true -> stepped tuning, false -> continuous tuning.
+            if (m_tuning_sp_ptr->common_ondition && !m_stop_workers)
             {
                 m_tuning_sp_ptr->signalling_cv.notify_one();
             }

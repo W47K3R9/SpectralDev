@@ -34,7 +34,7 @@ inline void test_real_voice()
                                .frequency_offset = 0,
                                .gain = 2.0f,
                                .voices = 8,
-                               .continuous_tuning = true};
+                               .stepped_tuning = false};
     const auto now = std::chrono::system_clock::now();
     fx_instance.update_parameters(params);
     fx_instance.process_daw_chunk(xl_array.data(), BUFF_SIZE);

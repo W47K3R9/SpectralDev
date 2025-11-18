@@ -68,7 +68,7 @@ class InstanceController
         m_buff_man.set_cutoff(params.filter_cutoff);
         m_buff_man.set_gain(params.gain);
         m_trigger_manager.set_trigger_interval(params.tune_interval_ms);
-        m_trigger_manager.set_triggered_tuning_behaviour(params.continuous_tuning);
+        m_trigger_manager.set_triggered_tuning_behaviour(params.stepped_tuning);
     }
 
     /// @brief Main processing function, called repeatedly during playback.

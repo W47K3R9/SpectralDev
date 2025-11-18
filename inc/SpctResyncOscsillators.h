@@ -75,10 +75,9 @@ class ResynthOscs
 
         // valid valid_entries is guaranteed to be smaller then max_oscillators!
         size_t nth_osc = 0;
-        // const auto active_entries = std::views::counted(bin_mag_arr.begin(), num_active_oscs);
-        const auto active_entries = std::views::counted(bin_mag_arr.begin(), num_voices);
+        const auto active_entries = std::views::counted(bin_mag_arr.begin(), num_active_oscs);
         std::ranges::for_each(active_entries,
-                              [&nth_osc, this](const auto& entry)
+                              [&nth_osc, this](const auto& entry) -> void
                               {
                                   // The offset of 0.5 is here to tune everything to the middle frequency of each bin.
                                   const auto freq = std::clamp<T>(
@@ -88,7 +87,7 @@ class ResynthOscs
                               });
         const auto silent_entries = std::views::counted(bin_mag_arr.begin() + num_active_oscs, num_silent_oscs);
         std::ranges::for_each(silent_entries,
-                              [&nth_osc, this]([[maybe_unused]] const auto& entry)
+                              [&nth_osc, this]([[maybe_unused]] const auto& entry) -> void
                               {
                                   m_osc_array[nth_osc].tune_and_set_amp(0, 0);
                                   nth_osc += 1;
