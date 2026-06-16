@@ -56,7 +56,7 @@ struct WaveTable
     // without range check
     T operator[](const size_t index) const { return m_wavetable[index]; }
     // with range check
-    T at(size_t index) const { return m_wavetable.at(index); }
+    T at(const size_t index) const { return m_wavetable.at(index); }
     auto begin() noexcept { return m_wavetable.begin(); }
     auto cbegin() const noexcept { return m_wavetable.cbegin(); }
     auto end() noexcept { return m_wavetable.end(); }

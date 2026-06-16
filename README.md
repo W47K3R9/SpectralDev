@@ -76,9 +76,53 @@ releaseResources can essentially be left empty because I release all resources d
 - Update parameters
 - Will call the main processing loop that fills the calculation input buffer and the output buffer that the DAW
 receives.
-- Triggers calculation (and therefore checks for calculation sync primitives action done flag)
+- Triggers calculation (and therefore checks for calculation sync primitives action done flag).
 
 That means setting the action_done flags of the sync primitives to true may at worst be called twice which has no
 negative side effects.
 
 
+## Ideas
+
+### Gliding Oscillators
+
+In order to get a seamless shift from one oscillator setting to the next the number of oscilllators could be doubeled
+and there will always be a crossfade from group a to group b.
+This would also omit the use of atomics which have a heavy impact on the runtime.
+But this will change the oscillator layout.
+
+The change should not affect any notifying modules, only the internal behaviour of the oscillators shall change.
+Since there is already a component that manages the oscillators (`ResynthOscillators`), this component shall also
+manage the switching. Or alternatively maybe each Oscillator gets a dual core and switches internally from one to the
+next. This is probably the cleaner version. The osc would then still only look up one table but get a pair of
+increments.
+
+The challenging part will be the crossfading. 
+
+Somehow I need a) two instances of sound generation per oscillator and b) a switch that toggles them with a crossfade.
+I could use a clamping function that rises to 1.0 and stops there (inverse for descending from 1.0 to 0.0).
+
+Don't know but maybe a functional implementation could be useful? Like e.g. pipe the oscillator in a crossfade function.
+This function takes in two sine waves and crossfades them.
+Then you could always swap the older one with the newer one, like in a queue.
+
+```cpp
+  class CrossFadeOsc{
+    public:
+    CrossFade(Osc osc_a, Osc osc_b);
+    get_output();
+    update_oscs();
+  }
+  auto out = cross(sine_a, sine_b);
+```
+
+The interface of the crossfading oscillator shall be as the regular oscillator, the user shall feel no difference.
+
+For the switching I could use a wavetable for a window. As soon as a frequency change (new tuning) happens the wavetable
+will iterate from start to the midpoint for the new frequency setting and from the midpoint to the end for the old
+setting.
+
+### Take Phase into account
+
+The phase information is a key component to the resulting sound output of the transformation.
+By ignoring it (like at the point of writing this -> 2026-06-1) the output is a quite noisy version of the input.

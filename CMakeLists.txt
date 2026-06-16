@@ -10,16 +10,9 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
-add_library(LBTS_SpctInstanceController INTERFACE
-    inc/SpctInstanceController.h 
-)
-
-target_include_directories(LBTS_SpctInstanceController  INTERFACE inc)
-target_link_libraries(LBTS_SpctInstanceController INTERFACE cmpl_flags)
-target_compile_options(LBTS_SpctInstanceController INTERFACE -O3)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O3")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O3 -march=native -mtune=native")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O3")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 add_executable(${PROJECT_NAME} main.cpp
         inc/SpctCalculationEngine.h
         inc/SpctProcessingFunctions.h
@@ -36,5 +29,5 @@ add_executable(${PROJECT_NAME} main.cpp
         test/SpctBufferManagerTest.h
         test/VoiceSampleArray.h
         test/SpctRealVoiceTest.h)
-target_link_libraries(${PROJECT_NAME} PRIVATE LBTS_SpctInstanceController cmpl_flags)
+target_link_libraries(${PROJECT_NAME} PRIVATE cmpl_flags)
 target_include_directories(${PROJECT_NAME} PRIVATE inc)

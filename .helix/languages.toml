@@ -9,7 +9,7 @@ args = ["--compile-commands-dir=../build", "--clang-tidy", "--query-driver=/usr/
 [[language]]
 name = "cpp"
 language-servers = ["clangd"]
-comment-token = "///"
+comment-token = ["///", "//", "//*"]
 indent = {tab-width = 4, unit = " "}
 auto-format = true
 
