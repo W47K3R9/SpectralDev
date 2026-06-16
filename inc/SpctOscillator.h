@@ -46,7 +46,6 @@ class WTOscillator
     WTOscillator(WTOscillator&& other) noexcept
         : m_table_index{other.m_table_index},
           m_amplitude{other.m_amplitude},
-          m_prev_amplitude{other.m_prev_amplitude},
           m_glide_resolution{other.m_glide_resolution},
           m_sampling_freq{other.m_sampling_freq},
           m_wt_ptr{other.m_wt_ptr}
@@ -59,7 +58,6 @@ class WTOscillator
         m_table_index = other.m_table_index;
         m_index_increment = other.m_index_increment;
         m_amplitude = other.m_amplitude;
-        m_prev_amplitude = other.m_prev_amplitude;
         m_glide_resolution.store(other.m_glide_resolution);
         m_sampling_freq = other.m_sampling_freq;
         m_sampling_freq = other.m_sampling_freq;
@@ -178,7 +176,6 @@ class WTOscillator
     float m_index_increment = 0;
     // amplitude related
     T m_amplitude = 0;
-    T m_prev_amplitude = 0;
     // initial glide resolution is 0.01 which is 1 / 100 and equivalent to a glide using 100 samples.
     std::atomic<T> m_glide_resolution = 0.01;
     // characteristic parameters
